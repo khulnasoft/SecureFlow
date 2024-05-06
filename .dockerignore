@@ -1,0 +1,17 @@
+.DS_Store
+app/settings.py
+app/assets_detection_rules.py
+var/log/*.log
+var/log/*.log.[0-9]*
+var/tmp/*.pid
+# **/migrations/[0-9]*.py
+media/*
+*.pyc
+__pycache__
+env
+env3
+
+pro/*
+env3pro
+.env
+.travis.yml

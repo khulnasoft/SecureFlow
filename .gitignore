@@ -1,0 +1,27 @@
+.idea
+*.pyc
+__pycache__
+env
+env3
+db.sqlite3
+.DS_Store
+dump.rdb
+app/settings.py
+app/settings-*.py
+app/assets_detection_rules.py
+media/imports/*
+media/owners_docs/*
+media/policies/*
+media/reports/*
+var/tmp/db.json
+# **/migrations/[0-9]*.py
+.scannerwork
+.vscode
+staticfiles
+docker-compose.cloud.yml*
+docker-entrypoint.cloud.sh*
+
+# Exclude PRO files :)
+pro
+env3pro/
+.env-*

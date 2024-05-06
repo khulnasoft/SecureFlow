@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<ul class="breadcrumb">
+  <li><a href="{% url 'list_findings_view' %}">findings</a></li>
+  <li class="active">edit</li>
+</ul>
+
+<script type="text/javascript">
+  $(document).ready(function() {
+    tagsinput_input = $('div.bootstrap-tagsinput')
+    tagsinput_input.tagsinput('removeAll');
+    if "{{ finding.tags }}" != "None" {
+      tags = "{{ finding.tags }}".replace(/u&#39;/g, "").replace(/&#39;/g, "").replace('[', '').replace(']', '').split(',');
+      for (var i = 0; i < tags.length; i++) {
+        tagsinput_input.tagsinput('add', tags[i]);
+      }
+    }
+  })
+</script>
+
+<div class="container">
+  {% if raw == True %}
+  <form action="/findings/edit/{{ finding.id }}?raw=true" method="post" class="form-horizontal">
+  {% else %}
+  <form action="/findings/edit/{{ finding.id }}" method="post" class="form-horizontal">
+  {% endif %}
+    <legend>Edit finding</legend>
+      {% csrf_token %}
+      {% for field in form %}
+          {% if field.errors %}
+              <div class="form-group has-error">
+                  <label class="col-sm-2 control-label" for="id_{{ field.name }}">{{ field.label }}</label>
+                  <div class="col-sm-4">
+                      {{ field }}
+                      <span class="help-block">
+                          {% for error in  field.errors %}{{ error }}{% endfor %}
+                      </span>
+                  </div>
+              </div>
+          {% elif not field.is_hidden %}
+              <div class="form-group">
+                  <label class="col-sm-2 control-label" for="id_{{ field.name }}">{{ field.label }}</label>
+                  <div class="col-sm-4">
+                      {{ field }}
+                      {% if field.help_text %}
+                          <p class="help-block"><small>{{ field.help_text }}</small></p>
+                      {% endif %}
+                  </div>
+              </div>
+          {% endif %}
+      {% endfor %}
+      <div class="form-group submit-div">
+        <div class="col-sm-4">
+          <input type="submit" class="btn btn-primary" value="Update Finding">
+        </div>
+        <div class="col-sm-4">
+          <button class="btn btn-primary"><a href="/findings/list">Cancel</a></button>
+        </div>
+      </div>
+  </form>
+</div>
+
+{% endblock %}

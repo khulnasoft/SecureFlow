@@ -1,0 +1,508 @@
+{% extends 'base.html' %}
+{% load patrowl_tags %}
+{% block content %}
+
+<style>
+.strong {
+  font-weight: 700;
+}
+
+.small {
+  font-size: 86%;
+}
+
+.col-sm-15, .col-sm-25, .col-sm-35 {
+  position: relative;
+  min-height: 1px;
+  padding-right: 5px;
+  padding-left: 10px;
+}
+@media (min-width: 768px) {
+.col-sm-15 {
+    width: 20%;
+    float: left;
+  }
+}
+
+@media (min-width: 768px) {
+.col-sm-25 {
+    width: 40%;
+    float: left;
+  }
+.col-sm-35 {
+    width: 60%;
+    float: left;
+  }
+}
+
+.tile {
+  /* background: whitesmoke; */
+}
+
+.tile-content {
+  margin: 0px -5px;
+  padding: 15px;
+  background: whitesmoke;
+  height: 100%;
+}
+
+.tile-header.with-border {
+  border-bottom: 1px solid #ecebeb;
+}
+
+.table-tile {
+  margin-bottom: 0px;
+  font-size: small;
+}
+
+.row {
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
+
+@media (min-width: 768px) {
+  .row.equal {
+    display: flex;
+    flex-wrap: wrap;
+  }
+}
+
+h2, .h2 {
+    font-size: 40px;
+}
+
+span.badge-risk-grade-A { background-color: limegreen; }
+span.badge-risk-grade-B { background-color: yellowgreen; }
+span.badge-risk-grade-C { background-color: orange; }
+span.badge-risk-grade-D { background-color: darkorange; }
+span.badge-risk-grade-E { background-color: orangered; }
+span.badge-risk-grade-F { background-color: red; }
+span.badge-risk-grade-- { background-color: lightgray; }
+
+td.bg-grade---low, td.bg-grade---medium, td.bg-grade---high {background-color: lightgray;}
+td.bg-grade-A-low, td.bg-grade-A-medium, td.bg-grade-A-high, td.bg-grade-B-low {background-color: yellowgreen;}
+td.bg-grade-B-medium, td.bg-grade-B-high, td.bg-grade-C-low, td.bg-grade-C-medium, td.bg-grade-D-low {background-color: yellow; }
+td.bg-grade-E-low, td.bg-grade-D-medium, td.bg-grade-C-high {background-color: orange; }
+td.bg-grade-F-low, td.bg-grade-E-medium, td.bg-grade-D-high {background-color: red; color: white;}
+td.bg-grade-F-medium, td.bg-grade-E-high {background-color: darkred; color: white;}
+td.bg-grade-F-high {background-color: black; color: white;}
+
+</style>
+
+<ul class="breadcrumb" style="margin-bottom: 0px;">
+  <li><a href="{% url 'homepage_dashboard_view' %}">Global dashboard</a></li>
+  {% if PRO_EDITION %}
+  <li class="active">
+    Team:
+    <select id="team_select" class="form-control form-control-xs" style="width:auto; display:inline-block; padding:0;">
+      <option value="-1" selected>All</option>
+      {% for team in teams %}
+      <option value="{{team.id}}">{{team.name|title}} </option>
+      {% endfor %}
+    </select>
+  </li>
+  {% endif %}
+</ul>
+
+<div class="container-fluid">
+  <!-- 1st row -->
+  <div class="row equal">
+    <div class="tile col-sm-15" ondblclick="window.location='{% url 'list_assets_view' %}'">
+      <div class="tile-content">
+        <h2 class="text-center strong">{{global_stats.assets.total}}</h2>
+        <h6 class="text-muted text-center">Assets defined</h6>
+        <small>
+          {% for type in global_stats.asset_types %}
+          <span class="badge badge-secondary small">{{type}}: {{ global_stats.asset_types|keyvalue:type}}</span>
+          {% endfor %}
+        </small>
+      </div>
+    </div>
+    <div class="tile col-sm-15" ondblclick="window.location='/findings/list'">
+      <div class="tile-content">
+        <h2 class="text-center strong">{{global_stats.findings.new}}</h2>
+        <h6 class="text-muted text-center">New findings</h6>
+        <small>Unique findings: {{global_stats.findings.total}}</small><br/>
+        <!-- <small>All findings: {{global_stats.findings.total_raw}}</small><br/> -->
+      </div>
+    </div>
+    <div class="tile col-sm-15" ondblclick="window.location='/scans/list'">
+      <div class="tile-content">
+        <h2 class="text-center strong">{{global_stats.scans.running}}</h2>
+        <h6 class="text-muted text-center">Running scans</h6>
+        <!-- <small>Active Periodic: {{global_stats.scans.active_periodic}}</small><br/> -->
+        <small>Defined: {{global_stats.scans.defined}}</small><br/>
+        <small>Enqueued: {{global_stats.scans.running}}</small><br/>
+        <small>Performed: {{global_stats.scans.performed}} (to year:{{global_stats.scans.performed_since_1y}})</small><br/>
+      </div>
+    </div>
+    <!-- <div class="tile col-sm-15" ondblclick="window.location='/rules/list'">
+      <div class="tile-content">
+        <h2 class="text-center strong">{{global_stats.rules.active}}</h2>
+        <h6 class="text-muted text-center">Active rules</h6>
+        <small>Defined: {{global_stats.rules.total}}</small><br/>
+        <small>Notified: {{global_stats.rules.nb_matches}}</small><br/>
+      </div>
+    </div> -->
+    <div class="tile col-sm-15" ondblclick="window.location='/events/alerts/list'">
+      <div class="tile-content">
+        <h2 class="text-center strong">{{global_stats.alerts.total_new}}</h2>
+        <h6 class="text-muted text-center">New alerts</h6>
+        <span class="badge badge-secondary small">info: {{ global_stats.alerts.new_info}}</span>
+        <span class="badge badge-secondary small">low: {{ global_stats.alerts.new_low}}</span>
+        <span class="badge badge-secondary small">medium: {{ global_stats.alerts.new_medium}}</span>
+        <span class="badge badge-secondary small">high: {{ global_stats.alerts.new_high}}</span>
+        <span class="badge badge-secondary small">critical: {{ global_stats.alerts.new_critical}}</span>
+      </div>
+    </div>
+    <div class="tile col-sm-15" ondblclick="window.location='/engines/list'">
+      <div class="tile-content">
+        <h2 class="text-center strong">{{global_stats.engines.active}}</h2>
+        <h6 class="text-muted text-center">Active engines</h6>
+        <small>Total engines: {{global_stats.engines.total}}</small><br/>
+        <small>Total policies: {{global_stats.engines.policies}}</small><br/>
+      </div>
+    </div>
+  </div>
+  <!-- End 1st row -->
+  <!-- 2nd row -->
+  <div class="row equal">
+    <div class="tile col-sm-15">
+      <div class="tile-content">
+        <div class="tile-header with-border">
+          <h4>Asset grades</h4>
+        </div>
+        <div class="tile-body">
+          <table style="text-align: center; font-size: small;">
+            <tr>
+              <th rowspan="2" style="text-align: center;">Grade</th>
+              <th colspan="3" style="text-align: center;">Criticality</th>
+            </tr>
+            <tr>
+              <th style="text-align: center; font-weight: lighter;">Low</th>
+              <th style="text-align: center; font-weight: lighter;">Medium</th>
+              <th style="text-align: center; font-weight: lighter;">High</th>
+            </tr>
+            {% for grades in asset_grades_map %}
+             {% for grade, value in grades.items %}
+           <tr>
+             <td>{{ grade }}</td>
+             <td style="width: 20%; cursor: pointer;" class="bg-grade-{{grade}}-low" onclick="window.location='{% url 'list_assets_view' %}?filter=criticity:low%20score:{{grade}}'">{{ grades|keyvalue:grade|keyvalue:"low" }}</td>
+             <td style="width: 20%; cursor: pointer;" class="bg-grade-{{grade}}-medium" onclick="window.location='{% url 'list_assets_view' %}?filter=criticity:medium%20score:{{grade}}'">{{ grades|keyvalue:grade|keyvalue:"medium" }}</td>
+             <td style="width: 20%; cursor: pointer;" class="bg-grade-{{grade}}-high" onclick="window.location='{% url 'list_assets_view' %}?filter=criticity:high%20score:{{grade}}'">{{ grades|keyvalue:grade|keyvalue:"high" }}</td>
+           </tr>
+             {% endfor %}
+           {% endfor %}
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="tile col-sm-15">
+      <div class="tile-content">
+        <div class="tile-header with-border">
+          <h4>Most critical assets</h4>
+        </div>
+        <div class="tile-body">
+          <table class="table table-hover table-tile">
+            <thead>
+              <tr>
+                <th scope="col">Grade</th>
+                <th scope="col">Value</th>
+                <th scope="col">Score</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for asset in top_critical_assets %}
+              <tr class='dblclickable-row' data-href='/assets/details/{{asset.id}}'>
+                <td><span class="badge badge-risk-grade-{{asset.risk_level|keyvalue:'grade'}}">{{asset.risk_level|keyvalue:"grade"}}</span></td>
+                <td>{{asset.value|truncatechars:25}}</td>
+                <td>{{asset|risk_score}}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="tile col-sm-15">
+      <div class="tile-content">
+        <div class="tile-header with-border">
+          <h4>Findings by criticities</h4>
+        </div>
+        <div class="tile-body">
+          <div id="findings-by-criticities">
+            <canvas id="chart-findings-by-criticities" width="200" height="200"/>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="tile col-sm-25">
+      <div class="tile-content">
+        <div class="tile-header with-border">
+          <h4>Most critical findings</h4>
+        </div>
+        <div class="tile-body">
+          <table class="table table-hover table-tile">
+            <thead>
+              <tr>
+                <th scope="col">Severity</th>
+                <th scope="col">Title</th>
+                <th scope="col">Asset</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for finding in top_critical_findings %}
+              <tr class='dblclickable-row' data-href='/findings/details/{{finding.id}}'>
+                {% if finding.severity == 'critical' %}
+                <td><span class="label label-critical">{{ finding.severity }}</span></td>
+                {% elif finding.severity == 'high' %}
+                <td><span class="label label-high">{{ finding.severity }}</span></td>
+                {% elif finding.severity == 'medium' or finding.severity == 'moderate' %}
+                <td><span class="label label-medium">{{ finding.severity }}</span></td>
+                {% elif finding.severity == 'low' %}
+                <td><span class="label label-low">{{ finding.severity }}</span></td>
+                {% else %}
+                <td><span class="label label-info">{{ finding.severity }}</span></td>
+                {% endif %}
+                <td>{{finding.title|truncatechars:40}}</td>
+                <td>{{finding.asset_name|truncatechars:30}}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- End 2nd row -->
+  <!-- 3rd row -->
+  <div class="row equal">
+    <div class="tile col-sm-15">
+      <div class="tile-content">
+        <div class="tile-header with-border">
+          <h4>Asset group grades</h4>
+        </div>
+        <div class="tile-body">
+          <table style="text-align: center; font-size: small;">
+            <tr>
+              <th rowspan="2" style="text-align: center;">Grade</th>
+              <th colspan="3" style="text-align: center;">Criticality</th>
+            </tr>
+            <tr>
+              <th style="text-align: center; font-weight: lighter;">Low</th>
+              <th style="text-align: center; font-weight: lighter;">Medium</th>
+              <th style="text-align: center; font-weight: lighter;">High</th>
+            </tr>
+            {% for grades in assetgroup_grades_map %}
+             {% for grade, value in grades.items %}
+           <tr>
+             <td>{{ grade }}</td>
+             <td style="width: 20%;" class="bg-grade-{{grade}}-low">{{ grades|keyvalue:grade|keyvalue:"low" }}</td>
+             <td style="width: 20%;" class="bg-grade-{{grade}}-medium">{{ grades|keyvalue:grade|keyvalue:"medium" }}</td>
+             <td style="width: 20%;" class="bg-grade-{{grade}}-high">{{ grades|keyvalue:grade|keyvalue:"high" }}</td>
+           </tr>
+             {% endfor %}
+           {% endfor %}
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="tile col-sm-15">
+      <div class="tile-content">
+        <div class="tile-header with-border">
+          <h4>Most critical asset groups</h4>
+        </div>
+        <div class="tile-body">
+          <table class="table table-hover table-tile">
+            <thead>
+              <tr>
+                <th scope="col">Grade</th>
+                <th scope="col">Name</th>
+                <th scope="col">Score</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for assetgroup in top_critical_assetgroups %}
+              <tr class='dblclickable-row' data-href='/assets/groups/details/{{assetgroup.id}}'>
+                <td><span class="badge badge-risk-grade-{{assetgroup.risk_level|keyvalue:'grade'}}">{{assetgroup.risk_level|keyvalue:"grade"}}</span></td>
+                <td>{{assetgroup.name}}</td>
+                <td>{{assetgroup|risk_score}}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="tile col-sm-35">
+      <div class="tile-content">
+        <div class="tile-header with-border">
+          <h4>Last scans</h4>
+        </div>
+        <div class="tile-body">
+          <table class="table table-hover table-tile">
+            <thead>
+              <tr>
+                <th class="col-sm-4">Title</th>
+                <th class="col-sm-2">Findings</th>
+                <th class="col-sm-1">Status</th>
+                <th class="col-sm-2">Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for scan in last_scans %}
+              <tr class='dblclickable-row' data-href='/scans/details/{{scan.id}}'>
+                <td>{{scan.title|truncatechars:64}}</td>
+                <td class="scan-progress" style="vertical-align: middle;">
+                  <div class="progress" style="margin-bottom: 0;">
+                    {% if scan.status == "finished" %}
+                    {% with total=scan.summary|keyvalue:'total' %}
+                    <div class="progress-bar progress-bar progress-bar-critical" role="progressbar" style="width:{{ scan.summary|keyvalue:'critical' | perc:total }}%">
+                      {{scan.summary|keyvalue:"critical"}}
+                    </div>
+                    <div class="progress-bar progress-bar progress-bar-high" role="progressbar" style="width:{{ scan.summary|keyvalue:'high' | perc:total }}%">
+                      {{scan.summary|keyvalue:"high"}}
+                    </div>
+                    <div class="progress-bar progress-bar progress-bar-medium" role="progressbar" style="width:{{ scan.summary|keyvalue:'medium' | perc:total }}%">
+                      {{scan.summary|keyvalue:"medium"}}
+                    </div>
+                    <div class="progress-bar progress-bar progress-bar-low" role="progressbar" style="width:{{ scan.summary|keyvalue:'low' | perc:total }}%">
+                      {{scan.summary|keyvalue:"low"}}
+                    </div>
+                    <div class="progress-bar progress-bar progress-bar-info" role="progressbar" style="width:{{ scan.summary|keyvalue:'info' | perc:total }}%">
+                      {{scan.summary|keyvalue:"info"}}
+                    </div>
+                    {% endwith %}
+                    {% else %}
+                    <div class="progress-bar progress-bar active" role="progressbar">
+                      -
+                    </div>
+                    {% endif %}
+
+                  </div>
+                </td>
+                <td class="text-center">
+                  {% if scan.status == "finished" %}
+                  <span class="label label-success">Finished</span>
+                  {% elif scan.status == "started" %}
+                  <span class="label label-warning">Started</span>
+                  {% elif scan.status == "error" %}
+                  <span class="label label-danger">Error</span>
+                  {% else %}
+                  <span class="label label-primary">{{scan.status|capfirst}}</span>
+                  {% endif %}
+                </td>
+                <td>{{scan.started_at|date:"Y-m-d H:i:s"}}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- End 3rd row -->
+  <div class="row equal">
+    <div class="tile col-sm-15">
+      <div class="tile-content">
+        <div class="tile-header with-border">
+          <h4>Top CVSS Score / Findings</h4>
+        </div>
+        <div class="tile-body">
+          <dl class="dl-horizontal">
+            <dt>#CVSS = 10: </dt><dd>{{cvss_scores.eq10}}</dd>
+            <dt>9.0 <= #CVSS < 10</dt><dd>{{cvss_scores.gte9}}</dd>
+            <dt>7.0 <= #CVSS < 9.0: </dt><dd>{{cvss_scores.gte7}}</dd>
+            <dt>5.0 <= #CVSS < 7.0 : </dt><dd>{{cvss_scores.5to7}}</dd>
+            <dt>#CVSS < 5.0: </dt><dd>{{cvss_scores.lte5}}</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+    <div class="tile col-sm-25">
+      <div class="tile-content">
+        <div class="tile-header with-border">
+          <h4>Top CVE</h4>
+        </div>
+        <div class="tile-body">
+          {% for cve in cxe_stats.top_cve %}
+            <a href='/findings/list?_reference={{cve.0}}&_reference_cond=CVE'><span class="badge badge-secondary small">{{cve.0}}: #{{cve.1}}</span></a>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    <div class="tile col-sm-25">
+      <div class="tile-content">
+        <div class="tile-header with-border">
+          <h4>Top CWE</h4>
+        </div>
+        <div class="tile-body">
+          {% for cwe in cxe_stats.top_cwe %}
+            <a href='/findings/list?_reference={{cwe.0}}&_reference_cond=CWE'><span class="badge badge-secondary small">{{cwe.0}}: #{{cwe.1}}</span></a>
+            <!-- <a href='https://cwe.mitre.org/data/definitions/{{cwe.0}}.html'><span class="badge badge-secondary small">{{cwe.0}}: #{{cwe.1}}</span></a> -->
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- End 4th row -->
+
+</div> <!-- End container-fluid -->
+
+<script>
+
+  var chart_findings_by_criticities;
+
+  cfbc_config = {
+      type: 'pie',
+      data: {
+          datasets: [{
+              backgroundColor: [
+                  "#cc0500",
+                  "#df3d03",
+                  "#f9a009",
+                  "#ffcb0d",
+                  "#3498db"
+              ],
+          }],
+          labels: ["Critical", "High", "Medium", "Low", "Info"]
+      },
+      options: {
+        responsive: false,
+        // responsive: true,
+        maintainAspectRatio: false,
+        // maintainAspectRatio: true,
+        legend: {
+          display: true
+        }
+      }
+    };
+
+    cfbc_config["data"]["datasets"][0]["data"] = new Array(
+      {{global_stats.findings.critical}},
+      {{global_stats.findings.high}},
+      {{global_stats.findings.medium}},
+      {{global_stats.findings.low}},
+      {{global_stats.findings.info}}
+    );
+
+    var ctx_findings = document.getElementById("chart-findings-by-criticities").getContext("2d");
+    window.cfbc_pie_chart = new Chart(ctx_findings, cfbc_config);
+
+    // Hide 'info' findings
+    window.cfbc_pie_chart.getDatasetMeta(0).data[4].hidden = true;
+    window.cfbc_pie_chart.update();
+
+    // jQuery
+    url = new URL(window.location.href);
+    $('#team_select').val(url.searchParams.get("team", "-1"))
+
+    // Reload on team selection change
+    $('#team_select').on('change', function() {
+      url.searchParams.set("team", this.value);
+      window.location = url.search;
+    });
+
+</script>
+
+{% endblock %}

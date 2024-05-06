@@ -1,0 +1,1045 @@
+{% extends 'base.html' %}
+{% load patrowl_tags %}
+{% block content %}
+
+<style>
+.dl-horizontal dd {
+  margin-left: 90px;
+  /* font-size: small; */
+}
+.dl-horizontal dt {
+  width: auto;
+  text-align: left;
+  font-weight: 600;
+  /* font-size: small; */
+}
+hr {
+  margin-top: 5px;
+  margin-bottom: 10px;
+}
+
+.progress-bar-zero {
+  background-color: lightgrey;
+}
+table tr td.scan-progress {
+  vertical-align: middle;
+}
+.scan-progress .progress {
+  margin-bottom: 0;
+}
+
+tr.event {
+  border-left-style: solid;
+  border-width: 2px;
+  border-left-width: 10px;
+  font-size: small;
+}
+
+tr.event-INFO { border-left-color: deepskyblue; }
+tr.event-WARNING { border-left-color: orange; }
+tr.event-ERROR { border-left-color: red; }
+tr.event-DEBUG { border-left-color: lightslategray; }
+
+.tile-content {
+  margin: 0px -5px;
+  padding: 15px;
+  background: whitesmoke;
+  height: 100%;
+}
+
+.tile-header.with-border {
+  border-bottom: 1px solid #ecebeb;
+}
+
+.table-tile {
+  margin-bottom: 0px;
+  font-size: small;
+}
+
+.row-tiles {
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
+
+</style>
+
+<script language="JavaScript">
+function toggle(source, element) {
+  checkboxes = document.getElementsByName(element);
+  for(var i=0, n=checkboxes.length;i<n;i++) {
+    checkboxes[i].checked = source.checked;
+  }
+}
+</script>
+
+<ul class="breadcrumb">
+  <li><a href="/scans/list">scans</a></li>
+  <li class="active">{{ scan.title }} [<a href="javascript:goBack()">back</a>]</li>
+</ul>
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-sm-9">
+      <div id="menu_tabs" class="container-fluid">
+        <ul class="nav nav-tabs" id="menu_tabs_ul" style="display: flex;">
+          <li class="active"><a data-toggle="tab"  href="#assets">Assets <span class="badge badge-pill badge-primary"> {{assets.paginator.count}}</span></a></li>
+          {% if assetgroups.count > 0 %}
+          <li><a data-toggle="tab" href="#assetgroups">Asset groups <span class="badge badge-pill badge-primary"> {{assetgroups.count}}</span></a></li>
+          {% endif %}
+          <li><a data-toggle="tab" href="#findings">Findings <span class="badge badge-pill badge-primary"> {{findings_stats.count}}</span></a></li>
+          <li><a data-toggle="tab" href="#events">Events <span class="badge badge-pill badge-primary"> {{scan_events.paginator.count}}</span></a></li>
+          <!-- <li><a data-toggle="tab" href="#risks">Risk summary</a></li> -->
+          <li style="width: 60%;">
+            <div class="row" style="margin-top: 5px;">
+              <div class="has-feedback col-sm-12" style="padding-right: 0px;">
+                <input type="text" placeholder="Quick search..." class="form-control form-control-sm" id="scan-quick-search" />
+                <!-- <i class="form-control-sm-feedback glyphicon glyphicon-search" style="color: #b4bcc2;"></i> -->
+                <a href="#modal-search-help" data-toggle="modal" data-target="#modal-search-help" style="color: #b4bcc2;"><span class="form-control-sm-feedback glyphicon glyphicon-search"></span></a>
+              </div>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tab-content">
+
+        <!-- Assets tab -->
+        <div id="assets" class="tab-pane fade in active">
+          <table class="table table-hover" id="table-assets">
+            <thead>
+              <tr>
+                <th data-field="asset_name">Asset</th>
+                <th data-field="asset_type">Type</th>
+                <th data-field="asset_criticity">Criticality</th>
+                <th data-field="asset_findings" style="width: 60%">Finding summary</th>
+                <!-- <th data-field="actions">Actions</th> -->
+              </tr>
+            </thead>
+            <tbody>
+            {% for asset in assets %}
+            <tr>
+              <td>{{ asset.value|truncatechars:35 }}</td>
+              <td>{{ asset.type }}</td>
+              {% if asset.criticity == 'low' %}
+              <td><span class="label label-low">Low</span></td>
+              {% elif asset.criticity == 'medium' %}
+              <td><span class="label label-medium">Medium</span></td>
+              {% elif asset.criticity == 'high' %}
+              <td><span class="label label-high">High</span></td>
+              {% elif asset.criticity == 'critical' %}
+              <td><span class="label label-critical">Critical</span></td>
+              {% endif %}
+              <td class="scan-progress">
+                <div class="progress">
+                  {% with total_findings=summary_assets|keyvalue:asset.value|keyvalue:'total' %}
+                  {% if scan.status == "finished" and total_findings > 0 %}
+                  <div class="progress-bar progress-bar-critical" role="progressbar" style="width:{{ summary_assets|keyvalue:asset.value|keyvalue:'critical' | perc:total_findings }}%">
+                    {{summary_assets|keyvalue:asset.value|keyvalue:"critical"}}
+                  </div>
+                  <div class="progress-bar progress-bar-high" role="progressbar" style="width:{{ summary_assets|keyvalue:asset.value|keyvalue:'high' | perc:total_findings }}%">
+                    {{summary_assets|keyvalue:asset.value|keyvalue:"high"}}
+                  </div>
+                  <div class="progress-bar progress-bar-medium" role="progressbar" style="width:{{ summary_assets|keyvalue:asset.value|keyvalue:'medium' | perc:total_findings }}%">
+                    {{summary_assets|keyvalue:asset.value|keyvalue:"medium"}}
+                  </div>
+                  <div class="progress-bar progress-bar-low" role="progressbar" style="width:{{ summary_assets|keyvalue:asset.value|keyvalue:'low' | perc:total_findings }}%">
+                    {{summary_assets|keyvalue:asset.value|keyvalue:"low"}}
+                  </div>
+                  <div class="progress-bar progress-bar-info" role="progressbar" style="width:{{ summary_assets|keyvalue:asset.value|keyvalue:'info' | perc:total_findings }}%">
+                    {{summary_assets|keyvalue:asset.value|keyvalue:"info"}}
+                  </div>
+                  {% else %}
+                  <div class="progress-bar progress-bar-zero" role="progressbar" style="width: 100%;">
+                    0
+                  </div>
+                  {% endif %}
+                  {% endwith %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+
+          <!-- Asset Pagination -->
+          <div style="display: inline-flex;">
+            <ul class="pagination pagination-xs">
+              {% if assets.number == 1 %}
+                <li class="disabled"><span>&laquo;&laquo;</span></li>
+              {% else %}
+                <li class="page-item"><a class="page-link" href="#" onclick="gotopage(1, 'assets');">&laquo;&laquo;</a></li>
+              {% endif %}
+              {% if assets.has_previous %}
+                <li class="page-item"><a class="page-link" href="#" onclick="gotopage({{assets.previous_page_number}}, 'assets');">&laquo;</a></li>
+              {% else %}
+                <li class="disabled"><span>&laquo;</span></li>
+              {% endif %}
+              {% for i in assets.paginator|proper_paginate:assets.number %}
+                {% if assets.number == i %}
+                    <li class="page-item active"><span>{{ i }} <span class="sr-only">(current)</span></span></li>
+                {% else %}
+                    <li class="page-item"><a class="page-link" href="#" onclick="gotopage({{i}}, 'assets');">{{ i }}</a></li>
+                {% endif %}
+              {% endfor %}
+              {% if assets.has_next %}
+                <li class="page-item"><a class="page-link" href="#" onclick="gotopage({{assets.next_page_number}}, 'assets');">&raquo;</a></li>
+              {% else %}
+                <li class="disabled"><span>&raquo;</span></li>
+              {% endif %}
+              {% if assets.number == assets.paginator.num_pages %}
+                <li class="disabled"><span>&raquo;&raquo;</span></li>
+              {% else %}
+                <li class="page-item"><a class="page-link" href="#" onclick="gotopage({{assets.paginator.num_pages}}, 'assets');">&raquo;&raquo;</a></li>
+              {% endif %}
+            </ul>
+          </div>
+        </div>
+
+        <!-- Asset groups tab -->
+        {% if assetgroups.count > 0 %}
+        <div id="assetgroups" class="tab-pane fade">
+          <table class="table table-hover" id="table-asset-groups">
+            <thead>
+              <tr>
+                <th data-field="assetgroup_name">Asset group name</th>
+                <th data-field="assetgroup_criticity">Criticality</th>
+                <th data-field="assetgroup_findings" style="width: 60%">Finding summary</th>
+                <!-- <th data-field="actions">Actions</th> -->
+              </tr>
+            </thead>
+            <tbody>
+            {% for assetgroup in assetgroups %}
+            <tr>
+              <td>{{ assetgroup.name }}</td>
+              {% if assetgroup.criticity == 'low' %}
+              <td><span class="label label-success">Low</span></td>
+              {% elif assetgroup.criticity == 'medium' %}
+              <td><span class="label label-info">Medium</span></td>
+              {% elif assetgroup.criticity == 'high' %}
+              <td><span class="label label-warning">High</span></td>
+              {% endif %}
+              <td class="scan-progress">
+                <div class="progress">
+                  {% with total_findings=summary_assetgroups|keyvalue:assetgroup.id|keyvalue:'total' %}
+                  {% if scan.status == "finished" and total_findings > 0 %}
+                  <div class="progress-bar progress-bar-critical" role="progressbar" style="width:{{ summary_assetgroups|keyvalue:assetgroup.id|keyvalue:'critical' | perc:total_findings }}%">
+                    {{summary_assetgroups|keyvalue:assetgroup.id|keyvalue:"critical"}}
+                  </div>
+                  <div class="progress-bar progress-bar-high" role="progressbar" style="width:{{ summary_assetgroups|keyvalue:assetgroup.id|keyvalue:'high' | perc:total_findings }}%">
+                    {{summary_assetgroups|keyvalue:assetgroup.id|keyvalue:"high"}}
+                  </div>
+                  <div class="progress-bar progress-bar-medium" role="progressbar" style="width:{{ summary_assetgroups|keyvalue:assetgroup.id|keyvalue:'medium' | perc:total_findings }}%">
+                    {{summary_assetgroups|keyvalue:assetgroup.id|keyvalue:"medium"}}
+                  </div>
+                  <div class="progress-bar progress-bar-low" role="progressbar" style="width:{{ summary_assetgroups|keyvalue:assetgroup.id|keyvalue:'low' | perc:total_findings }}%">
+                    {{summary_assetgroups|keyvalue:assetgroup.id|keyvalue:"low"}}
+                  </div>
+                  <div class="progress-bar progress-bar-info" role="progressbar" style="width:{{ summary_assetgroups|keyvalue:assetgroup.id|keyvalue:'info' | perc:total_findings }}%">
+                    {{summary_assetgroups|keyvalue:assetgroup.id|keyvalue:"info"}}
+                  </div>
+                  {% else %}
+                  <div class="progress-bar progress-bar-zero" role="progressbar">
+                    0
+                  </div>
+                  {% endif %}
+                  {% endwith %}
+                </div>
+              </td>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% endif %}
+
+        <!-- Dynamic Asset groups tab -->
+        {% if dynassetgroups.count > 0 %}
+        <div id="dynassetgroups" class="tab-pane fade">
+          <table class="table table-hover" id="table-dynamic-asset-groups">
+            <thead>
+              <tr>
+                <th data-field="dynassetgroup_name">Asset group name</th>
+                <th data-field="dynassetgroup_criticity">Criticality</th>
+                <th data-field="dynassetgroup_findings" style="width: 60%">Finding summary</th>
+                <!-- <th data-field="actions">Actions</th> -->
+              </tr>
+            </thead>
+            <tbody>
+            {% for dynassetgroup in dynassetgroups %}
+            <tr>
+              <td>{{ dynassetgroup.name }}</td>
+              {% if dynassetgroup.criticity == 'low' %}
+              <td><span class="label label-success">Low</span></td>
+              {% elif dynassetgroup.criticity == 'medium' %}
+              <td><span class="label label-info">Medium</span></td>
+              {% elif dynassetgroup.criticity == 'high' %}
+              <td><span class="label label-warning">High</span></td>
+              {% endif %}
+              <td class="scan-progress">
+                <div class="progress">
+                  {% with total_findings=summary_dynassetgroups|keyvalue:dynassetgroup.id|keyvalue:'total' %}
+                  {% if scan.status == "finished" and total_findings > 0 %}
+                  <div class="progress-bar progress-bar-critical" role="progressbar" style="width:{{ summary_dynassetgroups|keyvalue:dynassetgroup.id|keyvalue:'critical' | perc:total_findings }}%">
+                    {{summary_dynassetgroups|keyvalue:dynassetgroup.id|keyvalue:"critical"}}
+                  </div>
+                  <div class="progress-bar progress-bar-high" role="progressbar" style="width:{{ summary_dynassetgroups|keyvalue:dynassetgroup.id|keyvalue:'high' | perc:total_findings }}%">
+                    {{summary_dynassetgroups|keyvalue:dynassetgroup.id|keyvalue:"high"}}
+                  </div>
+                  <div class="progress-bar progress-bar-medium" role="progressbar" style="width:{{ summary_dynassetgroups|keyvalue:dynassetgroup.id|keyvalue:'medium' | perc:total_findings }}%">
+                    {{summary_dynassetgroups|keyvalue:dynassetgroup.id|keyvalue:"medium"}}
+                  </div>
+                  <div class="progress-bar progress-bar-low" role="progressbar" style="width:{{ summary_dynassetgroups|keyvalue:dynassetgroup.id|keyvalue:'low' | perc:total_findings }}%">
+                    {{summary_dynassetgroups|keyvalue:dynassetgroup.id|keyvalue:"low"}}
+                  </div>
+                  <div class="progress-bar progress-bar-info" role="progressbar" style="width:{{ summary_dynassetgroups|keyvalue:dynassetgroup.id|keyvalue:'info' | perc:total_findings }}%">
+                    {{summary_dynassetgroups|keyvalue:dynassetgroup.id|keyvalue:"info"}}
+                  </div>
+                  {% else %}
+                  <div class="progress-bar progress-bar-zero" role="progressbar">
+                    0
+                  </div>
+                  {% endif %}
+                  {% endwith %}
+                </div>
+              </td>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% endif %}
+
+        <!-- Findings tab -->
+        <div id="findings" class="tab-pane fade">
+          <div class="dropdown">
+            <button class="btn btn-primary btn-xs dropdown-toggle" type="button" id="dropdown-menu-actions" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+              Actions
+              <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="dropdown-menu-actions">
+              <li><a class="btn-finding-ack" href="#">Ack selected findings</a></li>
+              <li><a class="btn-finding-compare-selected" href="#">Compare selected findings (2 findings max.)</a></li>
+              <li><a class="btn-finding-delete-selected" href="#">Delete selected findings (no confirm)</a></li>
+            </ul>
+          </div>
+
+          <table class="table table-hover" id="table">
+            <thead>
+              <tr>
+                <th data-field="cb"><input type="checkbox" onClick="toggle(this, 'finding')" /></th>
+                <th data-field="asset_value">Asset</th>
+                <th data-field="title">Finding Title</th>
+                <!-- <th data-field="type">Finding Type</th> -->
+                <th data-field="status">Status</th>
+                <th data-field="severity">Severity</th>
+                <th data-field="actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+            {% for finding in findings %}
+            <tr class='dblclickable-row' data-href='/findings/details/{{finding.id}}?raw=true'>
+              <td><input type="checkbox" class="radio" name="finding" value="{{ finding.id }}"/></td>
+              <td>{{ finding.asset_name|truncatechars:30 }}</td>
+              <td>{{ finding.title|truncatechars:80 }}</td>
+              <td>
+                {% if finding.status == "new" %}<text class="text-danger">{{ finding.status }} <text>{% else %}{{ finding.status }} {% endif %}
+              </td>
+              {% if finding.severity == 'critical' %}
+              <td><span class="label label-critical">{{ finding.severity }}</span></td>
+              {% elif finding.severity == 'high' %}
+              <td><span class="label label-high">{{ finding.severity }}</span></td>
+              {% elif finding.severity == 'medium' or finding.severity == 'moderate' %}
+              <td><span class="label label-medium">{{ finding.severity }}</span></td>
+              {% elif finding.severity == 'low' %}
+              <td><span class="label label-low">{{ finding.severity }}</span></td>
+              {% else %}
+              <td><span class="label label-info">{{ finding.severity }}</span></td>
+              {% endif %}
+              <td>
+                <div class="btn-group" role="group">
+                  <a href="/findings/details/{{ finding.id }}?raw=true" class="btn btn-default btn-xs"><span class="glyphicon glyphicon-plus-sign"></span></a>
+
+                  {% if PRO_EDITION %}
+                    {% if request.user.is_superuser or request.user|has_role:"MANAGER" or request.user|has_role:"ANALYST" %}
+                    <a href="#" class="btn btn-warning btn-xs" data-toggle="modal" data-target="#modal-finding-update" finding-id="{{ finding.id }}">
+                      <span class="glyphicon glyphicon-pencil"></span></a>
+                    <a href="#" class="btn btn-success btn-xs btn-finding-retest" finding-id="{{ finding.id }}">
+                      <span class="glyphicon glyphicon-forward"></span></a>
+                    {% endif %}
+                  {% else %}
+                  <a href="#" class="btn btn-warning btn-xs" data-toggle="modal" data-target="#modal-finding-update" finding-id="{{ finding.id }}">
+                    <span class="glyphicon glyphicon-pencil"></span></a>
+                  <a href="#" class="btn btn-success btn-xs btn-finding-retest" finding-id="{{ finding.id }}">
+                    <span class="glyphicon glyphicon-forward"></span></a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+
+          <!-- Findings Pagination -->
+          <div style="display: inline-flex;">
+            <ul class="pagination pagination-xs">
+              {% if findings.number == 1 %}
+                <li class="disabled"><span>&laquo;&laquo;</span></li>
+              {% else %}
+                <li class="page-item"><a class="page-link" href="#" onclick="gotopage(1, 'findings');">&laquo;&laquo;</a></li>
+              {% endif %}
+              {% if findings.has_previous %}
+                <li class="page-item"><a class="page-link" href="#" onclick="gotopage({{findings.previous_page_number}}, 'findings');">&laquo;</a></li>
+              {% else %}
+                <li class="disabled"><span>&laquo;</span></li>
+              {% endif %}
+              {% for i in findings.paginator|proper_paginate:findings.number %}
+                {% if findings.number == i %}
+                    <li class="page-item active"><span>{{ i }} <span class="sr-only">(current)</span></span></li>
+                {% else %}
+                    <li class="page-item"><a class="page-link" href="#" onclick="gotopage({{i}}, 'findings');">{{ i }}</a></li>
+                {% endif %}
+              {% endfor %}
+              {% if findings.has_next %}
+                <li class="page-item"><a class="page-link" href="#" onclick="gotopage({{findings.next_page_number}}, 'findings');">&raquo;</a></li>
+              {% else %}
+                <li class="disabled"><span>&raquo;</span></li>
+              {% endif %}
+              {% if findings.number == findings.paginator.num_pages %}
+                <li class="disabled"><span>&raquo;&raquo;</span></li>
+              {% else %}
+                <li class="page-item"><a class="page-link" href="#" onclick="gotopage({{findings.paginator.num_pages}}, 'findings');">&raquo;&raquo;</a></li>
+              {% endif %}
+            </ul>
+          </div>
+        </div>
+
+        <!-- Events tab -->
+        <div id="events" class="tab-pane fade">
+          <table class="table table-hover table-events" id="table-events">
+            <thead>
+              <tr>
+                <th data-field="event_id">ID</th>
+                <th data-field="event_severity">Severity</th>
+                <th data-field="event_message">Message</th>
+                <th data-field="event_type">Type</th>
+                <th data-field="event_ts" style="width: 200px;">Timestamp</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for event in scan_events %}
+              <tr class="event event-{{ event.severity }}">
+                <td>{{ event.id }}</td>
+                <td>{{ event.severity }}</td>
+                <td title="{{ event.description }}">{{ event.message }}</td>
+                <td><strong>{{ event.type }}</strong></td>
+                <td>{{ event.created_at| date:"Y/m/d\-H:i:s" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+
+          <!-- Event Pagination -->
+          <div style="display: inline-flex;">
+            <ul class="pagination pagination-xs">
+              {% if scan_events.number == 1 %}
+                <li class="disabled"><span>&laquo;&laquo;</span></li>
+              {% else %}
+                <li class="page-item"><a class="page-link" href="#" onclick="gotopage(1, 'events');">&laquo;&laquo;</a></li>
+              {% endif %}
+              {% if scan_events.has_previous %}
+                <li class="page-item"><a class="page-link" href="#" onclick="gotopage({{scan_events.previous_page_number}}, 'events');">&laquo;</a></li>
+              {% else %}
+                <li class="disabled"><span>&laquo;</span></li>
+              {% endif %}
+              {% for i in scan_events.paginator|proper_paginate:scan_events.number %}
+                {% if scan_events.number == i %}
+                    <li class="page-item active"><span>{{ i }} <span class="sr-only">(current)</span></span></li>
+                {% else %}
+                    <li class="page-item"><a class="page-link" href="#" onclick="gotopage({{i}}, 'events');">{{ i }}</a></li>
+                {% endif %}
+              {% endfor %}
+              {% if scan_events.has_next %}
+                <li class="page-item"><a class="page-link" href="#" onclick="gotopage({{scan_events.next_page_number}}, 'events');">&raquo;</a></li>
+              {% else %}
+                <li class="disabled"><span>&raquo;</span></li>
+              {% endif %}
+              {% if scan_events.number == scan_events.paginator.num_pages %}
+                <li class="disabled"><span>&raquo;&raquo;</span></li>
+              {% else %}
+                <li class="page-item"><a class="page-link" href="#" onclick="gotopage({{scan_events.paginator.num_pages}}, 'events');">&raquo;&raquo;</a></li>
+              {% endif %}
+            </ul>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Second column -->
+    <div class="col-sm-3">
+      <b>Scan details</b> <small>(ID={{ scan.id }})</small>
+      {% if PRO_EDITION %}
+        {% if request.user.is_superuser or request.user|has_role:"MANAGER" or request.user|has_role:"ANALYST" %}
+         <button type="button" class="btn btn-xs btn-warning btn-rerun">Re-run !</button>
+        {% endif %}
+      {% else %}
+      <button type="button" class="btn btn-xs btn-warning btn-rerun">Re-run !</button>
+      {% endif %}
+
+      <hr class="my-1">
+      <dl class="dl-horizontal">
+        <dt>Title:</dt>
+        <dd>
+
+          {% if PRO_EDITION %}
+            {% if request.user.is_superuser or request.user|has_role:"MANAGER" or request.user|has_role:"ANALYST" %}
+             <a href="/scans/defs/details/{{scan.scan_definition.id}}">{{ scan.title }}</a>
+            {% else %}
+            {{ scan.title }}
+            {% endif %}
+          {% else %}
+          <a href="/scans/defs/details/{{scan.scan_definition.id}}">{{ scan.title }}</a>
+          {% endif %}
+        </dd>
+        <!-- <dt>Scan ID:</dt><dd>{{ scan.id }}</dd> -->
+        <dt>Assets:</dt><dd><a data-toggle="modal" data-target="#modal-showall-assets">show all</a><br/></dd>
+        <dt>Engine:</dt><dd>{{ scan.engine.name }} ({{ scan.engine_type.name }})</dd>
+        <dt>Status:</dt><dd>
+          {% if scan.status == "finished" %}
+            <span class="label label-success">Finished</span>
+          {% elif scan.status == "error" %}
+            <span class="label label-danger">Error</span>
+          {% else %}
+            <span class="label label-warning">{{ scan.status|capfirst }}</span>
+          {% endif %}
+        </dd>
+        <dt>Policy:</dt>
+        <dd>
+
+          {% if PRO_EDITION %}
+            {% if request.user.is_superuser or request.user|has_role:"MANAGER" or request.user|has_role:"ANALYST" %}
+            <a href="/engines/policies/edit/{{scan.engine_policy.id}}">{{ scan.engine_policy.name }}</a>
+            {% else %}
+            {{ scan.engine_policy.name }}
+            {% endif %}
+          {% else %}
+          <a href="/engines/policies/edit/{{scan.engine_policy.id}}">{{ scan.engine_policy.name }}</a>
+          {% endif %}
+        </dd>
+        <dt>Teams</dt><dd>{{ scan.scan_definition.teams.all|join:", " }}</dd>
+        <dt>Owner</dt><dd>{{ scan.scan_definition.owner.username }}</dd>
+        <dt>Started at:</dt><dd>{{ scan.started_at|date:"Y/m/d\-H:i:s" }}</dd>
+        <dt>Finished at:</dt><dd>{{ scan.finished_at|date:"Y/m/d\-H:i:s" }}</dd>
+        <dt>Elapsed:</dt><dd>{{ scan.finished_at|get_time_diff:scan.started_at }}</dd>
+        <dt>Reports:</dt><dd>
+          <button type="button" class="btn btn-warning btn-xs" onclick="location.href='/scans/api/v1/report/json/{{ scan.id }}'">json</button>
+          <button type="button" class="btn btn-warning btn-xs" onclick="location.href='/scans/api/v1/report/csv/{{ scan.id }}'">csv</button>
+          <button type="button" class="btn btn-warning btn-xs" onclick="location.href='/scans/api/v1/report/html/{{ scan.id }}'">html</button>
+          <button type="button" class="btn btn-warning btn-xs btn-send-report-email" scan-id={{scan.id}}>email</button>
+          <!-- <button type="button" class="btn btn-default btn-xs" onclick="location.href='#'">raw</button> -->
+        </dd>
+      </dl>
+
+      <b>Findings summary</b>
+      <hr class="my-1">
+      <div>
+        <dl class="dl-horizontal">
+          <dt>(A) CVSS > 7:</dt>
+          {% if findings_stats.cvss_gte_70 > 0 %}
+            <dd class="text-danger">{{findings_stats.cvss_gte_70}}</dd>
+          {% else %}<dd>0</dd>{% endif %}
+          <dt>(B) > 30 days:</dt><dd>{{findings_stats.pubdate_30d}}</dd>
+          <dt>(A) + (B):</dt>
+          {% if findings_stats.cvss_gte_70_pubdate_30d > 0 %}
+            <dd class="text-danger">{{findings_stats.cvss_gte_70_pubdate_30d}}</dd>
+          {% else %}<dd>0</dd>{% endif %}
+        </dl>
+        <strong>Repartition per severity:</strong>
+        <div><canvas id="chart-findings-summary" scan-id="{{ scan.id }}"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  {% if messages %}
+  <ul class="messages">
+      {% for message in messages %}
+      <li {% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+      {% endfor %}
+  </ul>
+  {% endif %}
+</div>
+
+<!-- Show all assets (if truncated) modal -->
+<div class="modal fade" id="modal-showall-assets" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <!-- Modal Header -->
+      <div class="modal-header bg-primary">
+        <button type="button" class="close" data-dismiss="modal">
+          <span aria-hidden="true">&times;</span>
+          <span class="sr-only">Close</span>
+        </button>
+        <h4 class="modal-title" id="myModalLabel">All assets</h4>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body">
+        <!-- Content -->
+        <div id="showall-assets">
+          {% if assetgroups|length > 0 %}
+            {% for ag in assetgroups %}
+              <strong>{{ ag.name }}</strong>:<br/>
+              {{ ag.assets.all|join:", " }}
+            {% endfor %}
+          {% endif %}
+          {% if dynassetgroups|length > 0 %}
+            {% for dag in dynassetgroups %}
+              <strong>{{ dag.name }}</strong>:<br/>
+              {{ dag.get_assets|join:", " }}
+            {% endfor %}
+          {% endif %}
+          {% for a in other_assets %}
+            {{a.value|truncatechars:30}}{% if not forloop.last %},{% endif %}
+          {% endfor %}
+        </div>
+        <button type="button" class="btn btn-xs btn-primary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Show Search Help modal -->
+<div class="modal fade" id="modal-search-help" tabindex="-1" role="dialog" aria-labelledby="modal-search-help" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <!-- Modal Header -->
+      <div class="modal-header bg-primary">
+        <button type="button" class="close" data-dismiss="modal">
+          <span aria-hidden="true">&times;</span>
+          <span class="sr-only">Close</span>
+        </button>
+        <h4 class="modal-title" id="myModalLabel">Quick Search Help</h4>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body">
+        <!-- Content -->
+        <p><i>Ex: 'assets:"google" asset.criticity:high findings.title:"ssl certificates"'</i></p>
+        <table class="table table-hover">
+          <tr>
+            <th scope="col">Prefix</th>
+            <th scope="col">Description</th>
+            <th scope="col">Examples</th>
+          </tr>
+          <tr>
+            <td>a<br/>assets<br/>a.value<br/>asset.value</td>
+            <td>Filter on asset values.</td>
+            <td><i>a:google</i><br/><i>a:"xxx yyy"</i><br/><i>asset.value:"https://patrowl.io"</i></td>
+          </tr>
+          <tr>
+            <td>a.type<br/>asset.type</td>
+            <td>Filter on asset types ('ip', 'domain', 'fqdn', 'url', 'keyword').</td>
+            <td><i>a.type:ip</i><br/><i>asset.type:"domain"</i></td>
+          </tr>
+          <tr>
+            <td>a.criticity<br/>asset.criticity</td>
+            <td>Filter on asset criticality ('low', 'medium', 'high').</td>
+            <td><i>a.criticity:low</i><br/><i>asset.criticity:"high"</i></td>
+          </tr>
+          <tr>
+            <td>f<br/>findings<br/>f.title<br/>finding.title</td>
+            <td>Filter on findings titles.</td>
+            <td><i>f:Certificates</i><br/><i>finding.title:"SSL Certificates"</i></td>
+          </tr>
+          <tr>
+            <td>f.severity<br/>finding.severity</td>
+            <td>Filter on finding severity ('low', 'medium', 'high', 'critical').</td>
+            <td><i>a.severity:low</i><br/><i>finding.severity:"high"</i></td>
+          </tr>
+          <tr>
+            <td>f.status<br/>finding.status</td>
+            <td>Filter on finding status ('new', 'ack', 'high).</td>
+            <td><i>a.status:ack</i><br/><i>finding.status:"new"</i></td>
+          </tr>
+        </table>
+        <br/>
+        <button type="button" class="btn btn-xs btn-primary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Change finding status modal -->
+<div class="modal fade" id="modal-finding-update" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <!-- Modal Header -->
+      <div class="modal-header bg-primary">
+        <button type="button" class="close" data-dismiss="modal">
+          <span aria-hidden="true">&times;</span>
+          <span class="sr-only">Close</span>
+        </button>
+        <h4 class="modal-title" id="myModalLabel">Update finding infos</h4>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body">
+        <div id="change-finding-infos">
+          <!-- Content -->
+          <dl class="dl-horizontal">
+            <dt>Severity:</dt>
+            <dd>
+              <select id="chg_finding_severity">
+                <option value='info'>Info</option>
+                <option value='low'>Low</option>
+                <option value='medium'>Medium</option>
+                <option value='high'>High</option>
+                <option value='critical'>Critical</option>
+              </select>
+            </dd>
+            <dt>Status:</dt>
+            <dd>
+              <select id="chg_finding_status">
+                <option value='new'>New</option>
+                <option value='ack'>Ack</option>
+              </select>
+            </dd>
+            <dt>Export:</dt>
+            <dd>
+              <button type="button" class="btn btn-xs btn-warning btn-export-finding" export-type="json">JSON</button>
+              <button type="button" class="btn btn-xs btn-warning btn-export-finding" export-type="stix">STIX</button>
+              <button type="button" class="btn btn-xs btn-warning btn-export-finding" export-type="html">HTML</button>
+            </dd>
+            <dt>Alert:</dt>
+            <dd>
+              <button type="button" class="btn btn-xs btn-default btn-alert-finding" alert-type="thehive">TheHive</button>
+              <button type="button" class="btn btn-xs btn-default btn-alert-finding" alert-type="slack">Slack</button>
+              <button type="button" class="btn btn-xs btn-default btn-alert-finding" alert-type="email">Mail</button>
+              <i class="alerts_summary"></i>
+            </dd>
+          </dl>
+
+        </div>
+        <button type="button" class="btn btn-xs btn-warning btn-update-finding" data-dismiss="modal">Update</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Send report modal -->
+<div class="modal fade" id="modal-send-report" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <!-- Modal Header -->
+      <div class="modal-header bg-primary">
+        <button type="button" class="close" data-dismiss="modal">
+          <span aria-hidden="true">&times;</span>
+          <span class="sr-only">Close</span>
+        </button>
+        <h4 class="modal-title" id="myModalLabel">Send report as Email</h4>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body">
+        <div id="send-report">
+          <!-- Content -->
+        </div>
+        <button type="button" class="btn btn-xs btn-primary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Retest finding modal -->
+<div class="modal fade" id="modal-retest-finding" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <!-- Modal Header -->
+      <div class="modal-header bg-primary">
+        <button type="button" class="close" data-dismiss="modal">
+          <span aria-hidden="true">&times;</span>
+          <span class="sr-only">Close</span>
+        </button>
+        <h4 class="modal-title" id="myModalLabel">Retest a finding</h4>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body">
+        <div id="retest-finding">
+          <!-- Content -->
+        </div>
+        <button type="button" class="btn btn-xs btn-primary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+
+  //Goto selected #tab when page loads
+  var hash = window.location.hash;
+  hash && $('ul.nav a[href="' + hash + '"]').tab('show');
+
+  // Fixing bootstrap tab issue
+  $('#menu_tabs > ul > li > a').click(function (e) {
+    $(this).removeClass('active');
+  });
+
+  // Show graph in the sidebar
+  getfindings_severities_url = "/findings/api/v1/stats?scope=scan&scan_id={{scan.id}}";
+  chart_fs_config = {
+    type: 'doughnut',
+    data: {
+        datasets: [{
+            data: [
+                "3", "10", "4", "2", "15"
+                //resp["nb_critical"], resp["nb_high"], resp["nb_medium"], resp["nb_low"], resp["nb_info"]
+            ],
+            backgroundColor: [
+                  "#cc0500",
+                  "#df3d03",
+                  "#f9a009",
+                  "#ffcb0d",
+                  "#3498db"
+            ],
+        }],
+        labels: ["Critical", "High", "Medium", "Low", "Info"]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      legend: {
+        display: true,
+        position: 'left'
+      }
+    }
+  };
+  var xhr = $.get(getfindings_severities_url, function(resp) {
+    config = jQuery.extend(true, {}, chart_fs_config);
+    config["data"]["datasets"][0]["data"] = new Array(resp["nb_critical"], resp["nb_high"], resp["nb_medium"], resp["nb_low"], resp["nb_info"])
+    ctx = $("#chart-findings-summary");
+    ctx.attr('width', 100);
+    ctx.attr('height',130);
+    window.myPie = new Chart(ctx, config);
+  });
+
+
+  //// Search bar
+  url = new URL(window.location.href);
+
+  // Goto page
+  var gotopage = function gotopage(page_num, target = "events") {
+    new_hash = "";
+    if (target == "events") {
+      url.searchParams.set("p_events", page_num);
+      new_hash = "#events";
+    } else if (target == "findings") {
+      url.searchParams.set("p_findings", page_num);
+      new_hash = "#findings";
+    } else if (target == "assets") {
+      url.searchParams.set("p_assets", page_num);
+      new_hash = "#assets";
+    }
+    window.location = url.search+new_hash;
+  };
+
+  // Autofill searchbar with url params
+  $('#scan-quick-search')[0].value = url.searchParams.get("search");
+
+  // Quick search submit
+  $('#scan-quick-search').keyup(function(e) {
+    if(e.which == 13) { // Enter Key
+      window.location.hash = "";
+      window.location = "/scans/details/{{scan.id}}?search="+e.target.value;
+    }
+    else if (e.which == 27) { e.target.value = ""; } // Escape Key
+  });
+
+  // Update finding info
+  $("#modal-finding-update").on('show.bs.modal', function (e) {
+    finding_id = e.relatedTarget.getAttribute('finding-id');
+    $("div#modal-finding-update").attr('finding-id', finding_id);
+  });
+  $('button.btn-update-finding').on('click', function(e){
+    finding_id = $("div#modal-finding-update").attr('finding-id');
+    update_url = "/findings/api/v1/update/"+finding_id+"?raw=true&severity="+$('#chg_finding_severity').val()+"&status="+$('#chg_finding_status').val();
+
+    var request = $.ajax({
+      url: update_url,
+      method: "GET",
+      success: function(data){
+        location.hash = "#findings";
+        location.reload();
+      }
+    });
+  });
+
+
+  // Re-run scan
+  $('button.btn-rerun').on('click', function(e){
+    scan_id = "{{scan.scan_definition_id}}";
+    rerun_url = "{% url 'run_scan_def_api' 0 %}".replace("0", scan_id);
+    var request = $.ajax({
+      url: rerun_url,
+      method: "GET",
+    });
+  });
+
+
+  // Retest vuln
+  $('a.btn-finding-retest').on('click', function(e){
+    finding_id = $("a.btn-finding-retest").attr('finding-id');
+    retest_url = "{% url 'add_retest_finding_scan_def_api' 0 %}".replace("0", finding_id);
+    $('#modal-retest-finding').modal('toggle');
+    var request = $.ajax({
+      url: retest_url,
+      method: "GET",
+      success: function(data){
+        console.log(data.scan_def_id)
+        $("div#retest-finding").append('\
+        <div class="alert alert-dismissible alert-success">\
+          <button type="button" class="close" data-dismiss="alert">&times;</button>\
+          <strong>Success !</strong>\
+        </div>Restest scan submitted: <a href="/scans/defs/details/'+data.scan_def_id+'">go</a><br/><br/>');
+        setTimeout(function(){
+          // $("div#retest-finding div.alert-success").remove();
+          $('#modal-retest-finding').modal('toggle');
+        }, 4000);
+      },
+      error: function(data){
+        $("div#retest-finding").append('\
+        <div class="alert alert-dismissible alert-danger">\
+          <button type="button" class="close" data-dismiss="alert">&times;</button>\
+          <strong>Error:</strong> Unable to retest finding: '+escapeHtml(data.reason)+'.\
+        </div>');
+        setTimeout(function(){
+          $("div#retest-finding div.alert-danger").remove();
+          $('#modal-retest-finding').modal('toggle');
+        }, 4000);
+      }
+    });
+  });
+
+  // Export finding
+  $('button.btn-export-finding').on('click', function(e){
+    finding_id = $("div#modal-finding-update").attr('finding-id');
+    redir = "/findings/api/v1/export/"+finding_id+"?raw=true&output="+e.target.getAttribute("export-type");
+    window.location = redir;
+  });
+
+  // Generate alerts
+  $('button.btn-alert-finding').on('click', function(e){
+    finding_id = $("div#modal-finding-update").attr('finding-id');
+    send_alert_url = "/findings/api/v1/alert/"+finding_id+"?raw=true&type="+e.target.getAttribute("alert-type");
+    var request = $.ajax({
+      url: send_alert_url,
+      method: "GET",
+      success: function(data){
+        $('i.alerts_summary')[0].textContent = "Alert sent.";
+        setTimeout(function(){
+          $('i.alerts_summary')[0].textContent = "";
+          $('#modal-finding-update').modal('toggle');
+        }, 2000);
+      }
+    });
+  });
+
+  // Delete selected findings
+  $("a.btn-finding-delete-selected").on('click', function(eventObject) {
+    findings_to_delete = [];
+    $("input[name='finding']").each(function(cbx){
+      if (this.checked) {
+        findings_to_delete.push(this.value)
+      }
+    })
+
+    if (findings_to_delete.length != 0){
+      var request = $.ajax({
+        url: "{% url 'delete_rawfindings_api' %}",
+        method: "POST",
+        headers: {"X-CSRFToken": "{{ csrf_token }}"},
+        data: JSON.stringify(findings_to_delete),
+        contentType: "application/json"
+      });
+      request.done(function(response){
+        if (response.status == 'success'){location.reload()}
+      });
+    }
+  });
+
+  // Change the status on seleted findings
+  $("a.btn-finding-ack").on('click', function(eventObject) {
+    findings_to_ack = [];
+    $("input[name='finding']").each(function(cbx){
+      if (this.checked) {
+        findings_to_ack.push({'ack': this.value});
+      }
+    })
+
+    if (findings_to_ack.length != 0){
+      var request = $.ajax({
+        url: "{% url 'change_rawfindings_status_api' %}",
+        method: "POST",
+        headers: {"X-CSRFToken": "{{ csrf_token }}"},
+        data: JSON.stringify(findings_to_ack),
+        contentType: "application/json"
+      });
+      request.done(function(response){
+        if (response.status == 'success'){
+          location.hash = "#findings";
+          location.reload();
+        }
+      });
+    }
+  });
+
+  // Compare findings
+  $("a.btn-finding-compare-selected").on('click', function (e) {
+    findings_to_compare = [];
+    $("input[name='finding']").each(function(cbx){
+      if (this.checked) {
+        findings_to_compare.push(this.value)
+      }
+    });
+    if(findings_to_compare.length == 2){
+      location.hash = "#findings";
+      window.location.href ="/findings/compare?raw=true&finding_a_id="+findings_to_compare[0]+"&finding_b_id="+findings_to_compare[1];
+    }
+  });
+
+  // Send report as email
+  $(".btn-send-report-email").on('click', function (e) {
+    scan_id = $(".btn-send-report-email").attr('scan-id');
+    $('#modal-send-report').modal('toggle');
+    request = $.ajax({
+      url: "/scans/api/v1/report/html/"+scan_id+"?email=true",
+      method: "GET",
+      success: function(data){
+        $("div#send-report").append('\
+        <div class="alert alert-dismissible alert-success">\
+          <button type="button" class="close" data-dismiss="alert">&times;</button>\
+          <strong>Success:</strong> email sent.\
+        </div>');
+        setTimeout(function(){
+          $("div#send-report div.alert-success").remove();
+          $('#modal-send-report').modal('toggle');
+        }, 4000);
+      },
+      error: function(data){
+        $("div#send-report").append('\
+        <div class="alert alert-dismissible alert-danger">\
+          <button type="button" class="close" data-dismiss="alert">&times;</button>\
+          <strong>Error:</strong> Unable to send email (check settings?).\
+        </div>');
+        setTimeout(function(){
+          $("div#send-report div.alert-danger").remove();
+          $('#modal-send-report').modal('toggle');
+        }, 4000);
+      }
+    });
+  });
+
+</script>
+
+{% endblock %}

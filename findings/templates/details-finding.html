@@ -1,0 +1,370 @@
+{% extends 'base.html' %}
+{% load patrowl_tags %}
+{% block content %}
+
+<style>
+.dl-horizontal dd {
+  margin-left: 100px;
+}
+.dl-horizontal dt {
+  text-align: left;
+  font-weight: 600;
+}
+hr {
+  margin-top: 5px;
+  margin-bottom: 10px;
+}
+</style>
+
+<ul class="breadcrumb">
+  <li><a href="{% url 'list_findings_view' %}">findings</a></li>
+  <li class="active"> {{ finding.asset_name }}: {{ finding.title }}</li>
+</ul>
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-sm-8"> <!-- left column -->
+
+      <div id="menu_tabs" class="container-fluid">
+        <ul class="nav nav-tabs" id="menu_tabs_ul">
+          <li class="active menu_summary"><a data-toggle="tab"  href="#summary_div">Summary</a></li>
+          <li class="menu_comments"><a data-toggle="tab" href="#comments_div">Comments</a></li>
+          <li class="menu_tracking"><a data-toggle="tab" href="#tracking_div">Tracking</a></li>
+        </ul>
+        <div class="tab-content">
+
+          <!-- Summary tab -->
+          <div id="summary_div" class="tab-pane fade in active">
+            <br/>
+            <div class="row">
+              <b>
+                {% if finding.severity == 'critical' %}
+                <span class="label label-critical">{{ finding.severity }}</span>
+                {% elif finding.severity == 'high' %}
+                <span class="label label-high">{{ finding.severity }}</span>
+                {% elif finding.severity == 'medium' or finding.severity == 'moderate' %}
+                <span class="label label-medium">{{ finding.severity }}</span>
+                {% elif finding.severity == 'low' %}
+                <span class="label label-low">{{ finding.severity }}</span>
+                {% else %}
+                <span class="label label-info">{{ finding.severity }}</span>
+                {% endif %}
+                {{ finding.title }}
+              </b>
+            </div>
+            <div class="row">
+              <p>
+                <br/><b>Description</b><br/>
+                {% if finding.scan.engine_type.name == "CORTEX" %}
+                <pre>{{ finding.description|linebreaksbr }}</pre>
+                {% else %}
+                {{ finding.description|linebreaks }}
+                {% endif %}
+              </p>
+            </div>
+            <div class="row">
+              <b>Solution</b><br/>
+              {{ finding.solution|linebreaks }}
+            </div>
+            <div class="row">
+              <p>
+                <b>See also</b><br/>
+                {% if not finding.links %}
+                  No links.
+                {% else %}
+                  {% for link in finding.links %}
+                    <a target="_blank" href="{{link}}"> {{link}}</a><br/>
+                  {% endfor %}
+                {% endif %}
+              <p>
+            </div>
+            <div class="row">
+              <p>
+                <b>Hash</b><br/>
+                {{ finding.hash }}
+              </p>
+            </div>
+          </div>
+
+          <!-- Comments tab -->
+          <div id="comments_div" class="tab-pane fade">
+            <br/>
+            {% if PRO_EDITION %}
+              {% if request.user.is_superuser or request.user|has_role:"MANAGER" or request.user|has_role:"ANALYST" %}
+              <textarea id="comments_text" rows="8" class="form-control form-control-sm">{{ finding.comments }}</textarea>
+              <br/>
+              <button class="btn btn-warning btn-xs btn-update-comments" style="width: 100%;">Update comments</button>
+              {% else %}
+              <textarea id="comments_text" rows="8" class="form-control form-control-sm" disabled>{{ finding.comments }}</textarea>
+              <br/>
+              {% endif %}
+            {% else %}
+            <textarea id="comments_text" rows="8" class="form-control form-control-sm" >{{ finding.comments }}</textarea>
+            <br/>
+            <button class="btn btn-warning btn-xs btn-update-comments" style="width: 100%;">Update comments</button>
+            {% endif %}
+          </div>
+
+          <!-- Tracking tab -->
+          <div id="tracking_div" class="tab-pane fade">
+            <br/>
+            {% if tracking_timeline|length == 0 %}No tracking data available (raw finding).{% else %}
+              {% for event_date, event_message in tracking_timeline.items %}
+              {{event_date|date:"Y/m/d\-H:i:s"}}: {{event_message.message|safe}}<br/>
+              {% endfor %}
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="col-sm-4">
+      <b>Actions</b>
+      <hr class="my-1">
+    {% if PRO_EDITION %}
+        {% if request.user.is_superuser or request.user|has_role:"MANAGER" or request.user|has_role:"ANALYST" %}
+        {% if raw == False %}
+        <div class="generate-alerts">
+          <button class="btn btn-danger btn-xs btn-generate-alerts" style="width: 100%;">Generate alerts</button>
+          <i class="alerts_summary"></i>
+        </div>
+        {% endif %}
+        <div class="change-finding-status">
+          {% if raw == True %}
+          <a href="/findings/edit/{{ finding.id }}?raw=true"><button class="btn btn-default btn-xs btn-change-finding-infos" style="width: 100%;">Update info</button></a>
+          {% else %}
+          <a href="/findings/edit/{{ finding.id }}"><button class="btn btn-default btn-xs btn-change-finding-infos" style="width: 100%;">Update info</button></a>
+          {% endif %}
+        </div>
+        {% endif %}
+      {% else %}
+      {% if raw == False %}
+      <div class="generate-alerts">
+        <button class="btn btn-danger btn-xs btn-generate-alerts" style="width: 100%;">Generate alerts</button>
+        <i class="alerts_summary"></i>
+      </div>
+      {% endif %}
+      <div class="change-finding-status">
+        {% if raw == True %}
+        <a href="/findings/edit/{{ finding.id }}?raw=true"><button class="btn btn-default btn-xs btn-change-finding-infos" style="width: 100%;">Update info</button></a>
+        {% else %}
+        <a href="/findings/edit/{{ finding.id }}"><button class="btn btn-default btn-xs btn-change-finding-infos" style="width: 100%;">Update info</button></a>
+        {% endif %}
+      </div>
+      {% endif %}
+      <div class="export-finding btn-group" style="width: 100%;">
+        <a href="#" class="btn btn-xs btn-primary dropdown-toggle" data-toggle="dropdown" style="width: 100%;">Export <span class="caret pull"></span></a>
+        <ul class="dropdown-menu">
+          <li><a href="#" export-format="html">HTML</a></li>
+          <!-- <li><a href="#" export-format="pdf">PDF (Todo)</a></li> -->
+          <li><a href="#" export-format="json">JSON</a></li>
+          <li><a href="#" export-format="stix">STIX 2</a></li>
+          <li><a href="#" export-format="csv">CSV</a></li>
+        </ul>
+      </div>
+      <br/>
+      <br/>
+
+      <b>Finding infos</b>
+      <hr class="my-1">
+      <dl class="dl-horizontal">
+        <dt>ID:</dt><dd>{{ finding.id }}</dd>
+        <dt>Severity:</dt><dd>
+          {% if finding.severity == 'critical' %}
+          <td><span class="label label-critical">{{ finding.severity }}</span></td>
+          {% elif finding.severity == 'high' %}
+          <td><span class="label label-high">{{ finding.severity }}</span></td>
+          {% elif finding.severity == 'medium' or finding.severity == 'moderate' %}
+          <td><span class="label label-medium">{{ finding.severity }}</span></td>
+          {% elif finding.severity == 'low' %}
+          <td><span class="label label-low">{{ finding.severity }}</span></td>
+          {% else %}
+          <td><span class="label label-info">{{ finding.severity }}</span></td>
+          {% endif %}
+        </dd>
+        <dt>Status:</dt><dd>
+          {% if finding.status == 'new' %}
+          <span class="text-danger">{{ finding.status }}</span>
+          {% else %}
+            {{ finding.status }}
+          {% endif %}
+        </dd>
+        <dt>Asset:</dt><dd>
+          <a href="/assets/details/{{finding.asset.id}}">
+          {% if finding.asset|length > 64 %}
+            {{ finding.asset|truncatechars:64 }}
+          {% else %}
+            {{ finding.asset }}
+          {% endif %}
+        </a>
+        </dd>
+        <dt>Asset tags:</dt><dd>
+          {% for tag in finding.asset.categories.all %}
+          <span class="label label-primary">{{tag.value|lower}}</span>
+          {% endfor %}
+        </dd>
+        <dt>From engine:</dt><dd>{{ finding.scan.engine.name }} ({{ finding.engine_type }})</dd>
+        <dt>From scan:</dt><dd><a href="/scans/details/{{finding.scan.id}}">{{ finding.scan.title }}</a></dd>
+        <dt>From policy:</dt><dd><a href="/engines/policies/edit/{{finding.scan.engine_policy.id}}">{{ finding.scan.engine_policy.name }}</a></dd>
+        <dt>Type:</dt><dd>{{ finding.type }}</dd>
+        <dt>Tags:</dt>
+        <dd>
+          {% if not finding.tags %}
+            No Tags.
+          {% else %}
+            {% for tag in finding.tags %}
+              <span class="label label-primary">{{ tag|lower }}</span>
+            {% endfor %}
+          {% endif %}
+        </dd>
+        <dt>Found at:</dt><dd>{{ finding.created_at|date:"Y/m/d\-H:i:s" }}</dd>
+      </dl>
+
+      {% if finding.risk_info %}
+      <b>Risk infos</b>
+      <hr class="my-1">
+      <dl class="dl-horizontal">
+        {% if "cvss3_base_score" in finding.risk_info.keys %}
+        <dt>CVSSv3 Base Score:</dt><dd>{{ finding.risk_info.cvss3_base_score }}</dd>
+        {% endif %}
+        {% if "cvss3_vector" in finding.risk_info.keys %}
+        <dt>CVSSv3 Vector:</dt><dd>{{ finding.risk_info.cvss3_vector }}</dd>
+        {% endif %}
+        {% if "cvss_base_score" in finding.risk_info.keys %}
+        <dt>CVSSv2 Base Score:</dt><dd>{{ finding.risk_info.cvss_base_score }}</dd>
+        {% endif %}
+        {% if "cvss_vector" in finding.risk_info.keys %}
+        <dt>CVSSv2 Vector:</dt><dd>{{ finding.risk_info.cvss_vector }}</dd>
+        {% endif %}
+        {% if "vuln_publication_date" in finding.risk_info.keys %}
+        <dt>Publication date:</dt><dd>{{ finding.risk_info.vuln_publication_date }}</dd>
+        {% endif %}
+
+        {% with "cvss3_base_score cvss3_vector cvss_base_score cvss_vector vuln_publication_date" as list %}
+        {% for key, value in finding.risk_info.items %}
+        {% if key not in list.split %}
+        <dt>{{ key }}</dt><dd>{{ value }}</dd>
+        {% endif %}
+        {% endfor %}
+        {% endwith %}
+      </dl>
+      {% endif %}
+
+      {% if finding.vuln_refs %}
+      <b>References</b>
+      <hr class="my-1">
+      <dl class="dl-horizontal">
+        {% if "CVE" in finding.vuln_refs.keys %}
+        <dt>CVE:</dt>
+        <dd>
+          {% if finding.vuln_refs.CVE|get_class == "list" %}
+            {% for v in finding.vuln_refs.CVE %}
+              <a target="_blank" href="https://nvd.nist.gov/vuln/detail/{{v}}">{{v}}</a>{% if not forloop.last %}, {% endif %}
+            {% endfor %}
+          {% else %}
+            <a target="_blank" href="https://nvd.nist.gov/vuln/detail/{{finding.vuln_refs.CVE}}">{{finding.vuln_refs.CVE}}</a>
+          {% endif %}
+        </dd>
+        {% endif %}
+
+        {% if "BID" in finding.vuln_refs.keys %}
+        <dt>Bugtraq ID:</dt>
+        <dd>
+          {% if finding.vuln_refs.BID|get_class == "list" %}
+            {% for v in finding.vuln_refs.BID %}
+              <a target="_blank" href="https://www.securityfocus.com/bid/{{v}}">{{v}}</a>{% if not forloop.last %}, {% endif %}
+            {% endfor %}
+          {% else %}
+            <a target="_blank" href="https://www.securityfocus.com/bid/{{finding.vuln_refs.BID}}">{{finding.vuln_refs.BID}}</a>
+          {% endif %}
+        </dd>
+        {% endif %}
+
+        {% with "CVE BID" as list %}
+        {% for key, values in finding.vuln_refs.items %}
+          {% if key not in list.split %}
+          <dt>{{ key }}:</dt>
+          <dd>
+            {% if values|get_class == "list" %}
+              {% for v in values %}
+                <a href="{{v|ref_url:key}}">{{v}}</a>{% if not forloop.last %}, {% endif %}
+              {% endfor %}
+            {% else %}
+              <a href="{{values|ref_url:key}}">{{values}}</a>
+            {% endif %}
+          </dd>
+          {% endif %}
+        {% endfor %}
+        {% endwith %}
+      </dl>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  {% if messages %}
+  <ul class="messages">
+      {% for message in messages %}
+      <li {% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+      {% endfor %}
+  </ul>
+  {% endif %}
+</div>
+
+<script>
+
+  // function for parsing query string
+  function qs(key) {
+    key = key.replace(/[*+?^$.\[\]{}()|\\\/]/g, "\\$&"); // escape RegEx control chars
+    var match = location.search.match(new RegExp("[?&]" + key + "=([^&]+)(&|$)"));
+    return match && decodeURIComponent(match[1].replace(/\+/g, " "));
+  }
+
+  // Generate alerts
+  $('button.btn-generate-alerts').on('click', function(e){
+    var request = $.ajax({
+      url: "/findings/api/v1/gen_alerts/{{finding.id}}?raw=true",
+      method: "GET",
+      success: function(data){
+        $('i.alerts_summary')[0].textContent = data["nb_matches"]+" alert(s) generated";
+      }
+    });
+  });
+
+  // Update finding comments
+  $('button.btn-update-comments').on('click', function(e){
+    comments = "csrfmiddlewaretoken={{ csrf_token }}&comments="+$("textarea#comments_text").val();
+
+    if (qs('raw') == "true") {
+      comments += "&raw=true";
+    }
+
+    var request = $.ajax({
+      url: "/findings/api/v1/update_comments/{{finding.id}}",
+      method: "POST",
+      data: comments,
+      success: function(data){
+        location.reload();
+      }
+    });
+  }); // End - Update finding comments
+
+
+  // Export finding
+  $('div.export-finding ul li a').on('click', function(e){
+    redir = "/findings/api/v1/export/{{finding.id}}?output="+e.target.getAttribute("export-format");
+    if (qs('raw') == "true") {
+      redir = redir+"&raw=true";
+    }
+    window.location = redir;
+  });
+
+  // Fixing bootstrap tab issue
+  $('#menu_tabs > ul > li > a').click(function (e) {
+    $(this).removeClass('active');
+  });
+
+</script>
+
+{% endblock %}

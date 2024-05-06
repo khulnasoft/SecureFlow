@@ -1,0 +1,622 @@
+{% load staticfiles %}
+{% load patrowl_tags %}
+{% load i18n %}
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PatrOwl</title>
+
+  <!-- Favicon -->
+  <link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
+
+  <!-- Patrowl CSS - Include with every page -->
+  <link href="{% static 'css/patrowlmanager.css' %}" rel="stylesheet">
+
+  <!-- Core CSS - Include with every page -->
+  <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
+  <link href="{% static 'css/cal-heatmap.css' %}" rel="stylesheet">
+  <link href="{% static 'css/jquery-ui.css' %}" rel="stylesheet">
+  <link href="{% static 'css/selectize.bootstrap4.css' %}" rel="stylesheet">
+
+
+  <!-- Core Scripts - Include with every page -->
+  <script src="{% static 'js/jquery.min.js' %}"></script>
+  <script src="{% static 'js/jquery-ui.min.js' %}"></script>
+  <script src="{% static 'js/bootstrap.min.js' %}"></script>
+  <script src="{% static 'js/tether.min.js' %}"></script>
+  <script src="{% static 'js/d3.min.js' %}"></script>
+  <script src="{% static 'js/cal-heatmap.min.js' %}"></script>
+  <script src="{% static 'js/Chart.bundle.min.js' %}"></script>
+  <script src="{% static 'js/selectize.js' %}"></script>
+
+  <!-- DataTables -->
+  <script src="{% static 'js/jquery.dataTables.min.js' %}"></script>
+  <!-- <link href="{% static 'css/jquery.dataTables.min.css' %}" rel="stylesheet"> -->
+  <link href="{% static 'css/dataTables.bootstrap4.min.css' %}" rel="stylesheet">
+  <script src="{% static 'js/dataTables.buttons.min.js' %}"></script>
+  <script src="{% static 'js/dataTables.select.min.js' %}"></script>
+  <link href="{% static 'css/select.dataTables.min.css' %}" rel="stylesheet">
+
+  <!-- DateTime picker -->
+  <link href="/static/css/datetimepicker.css" type="text/css" media="all" rel="stylesheet" />
+  <script type="text/javascript" src="/static/js/bootstrap-datetimepicker.js"></script>
+
+  <!-- Typeahead jQuery plugin -->
+  <script src="{% static 'js/typeahead/typeahead.bundle.min.js' %}"></script>
+
+  <!-- Font Awesome -->
+  <script src="{% static 'js/fontawesome-all.min.js' %}"></script>
+
+  <!-- Tagsinput -->
+  <script src="{% static 'js/bootstrap-tagsinput.min.js' %}"></script>
+  <link href="{% static 'css/bootstrap-tagsinput.css' %}" rel="stylesheet">
+
+  <!-- Admin -->
+  <!-- <script type="text/javascript" src="/admin/jsi18n/"></script> -->
+  <script type="text/javascript" src="/static/admin/js/core.js"></script>
+  <script type="text/javascript" src="/static/admin/js/vendor/jquery/jquery.js"></script>
+  <script type="text/javascript" src="/static/admin/js/jquery.init.js"></script>
+  <script type="text/javascript" src="/static/admin/js/admin/RelatedObjectLookups.js"></script>
+  {% if request.user.is_superuser %}
+  <script type="text/javascript" src="/admin/jsi18n/"></script>
+  {% endif %}
+
+  <script type="text/javascript" src="/static/admin/js/actions.js"></script>
+  <script type="text/javascript" src="/static/admin/js/urlify.js"></script>
+  <script type="text/javascript" src="/static/admin/js/prepopulate.js"></script>
+  <script type="text/javascript" src="/static/admin/js/vendor/xregexp/xregexp.js"></script>
+  <!-- <script type="text/javascript" src="/static/admin/js/calendar.js"></script> -->
+  <!-- <script type="text/javascript" src="/static/admin/js/admin/DateTimeShortcuts.js"></script> -->
+
+  <script>
+    function goBack() {
+        window.history.back();
+    }
+
+    function encodeURIComponent(str){
+      return String(str).replace(/[^\w. ]/gi, function(c){
+         return '\\u'+('0000'+c.charCodeAt(0).toString(16)).slice(-4);
+      });
+
+    }
+
+    function escapeHtml(text) {
+      var map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+      };
+
+      return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+    }
+
+    $(function(){
+      $(".clickable-row").click(function() {
+        var sel = getSelection().toString();
+        if(!sel){
+            window.location = $(this).data("href");
+        }
+      });
+      $(".dblclickable-row").dblclick(function() {
+        window.location = $(this).data("href");
+      });
+
+      // Refresh engines status only if the user is authenticated
+      {% if user.is_authenticated %}
+      refresh_engines_status();
+      if({{ PATROWL_REFRESH_ENGINE }}>0){
+        setInterval(
+          function() {
+            refresh_engines_status();
+          },(
+            {{ PATROWL_REFRESH_ENGINE }} > 5000)?{{ PATROWL_REFRESH_ENGINE }}:5000
+        );
+      }
+      {% endif %}
+
+      // On-demand refresh
+      $("#engines_status_label").click(function(){
+        refresh_engines_status();
+      });
+
+
+      $("#engines_status_label").dblclick(function(){
+        window.location = "/engines/list"
+      });
+
+    });
+
+  </script>
+
+  {% if user.is_authenticated %}
+  <script>
+    function refresh_engines_status(){
+      $('span.engine-status').empty();
+      $('span.running-scans').empty();
+      $('span.enqueued-scans').empty();
+      var xhr = $.get("{% url 'list_engines_intances_api' %}", function(response) {
+        engines_json = response.engines;
+        for (var engine_id in engines_json) {
+          engine = engines_json[engine_id];
+          enabled = ""
+          if (engine["enabled"] == true) {enabled = "Enabled";} else {enabled="Disabled"}
+          title = escapeHtml(engine["name"]) + " ("+enabled+"/"+engine["status"]+")";
+          status_color = "default";
+          if (engine["enabled"] && engine["status"] == "READY" || engine["status"] == "WORKING") {
+            status_color = "success";
+          } else if (engine["enabled"] && engine["status"] != "READY" && engine["status"] != "WORKING") {
+            status_color = "danger";
+          }
+          $('span.engine-status').append('<i class="glyphicon glyphicon-record text-'+status_color+'" title="'+title+'" id="engine_'+engine["id"]+'" data-toggle="tooltip" data-placement="left" data-delay="500"></i>')
+          $('#engine_'+engine["id"]).tooltip();
+        }
+
+        running_scans = response.running_scans;
+        if (running_scans == 1) {$('span.running-scans').append('&nbsp;-&nbsp;1 scan running <i class="glyphicon glyphicon-cog gly-spin"></i>');}
+        if (running_scans > 1) {$('span.running-scans').append('&nbsp;-&nbsp;' + running_scans+' scans running <i class="glyphicon glyphicon-cog gly-spin"></i>');}
+
+        enqueued_scans = response.enqueued_scans;
+        if (enqueued_scans == 1) {$('span.enqueued-scans').append('&nbsp;-&nbsp;1 scan enqueued <i class="glyphicon glyphicon-cog gly-spin"></i>');}
+        if (enqueued_scans > 1) {$('span.enqueued-scans').append('&nbsp;-&nbsp;' + enqueued_scans+' scans enqueued <i class="glyphicon glyphicon-cog gly-spin"></i>');}
+      });
+    }
+
+
+
+  </script>
+  {% endif %}
+
+
+  <style>
+    body { padding-top: 60px; }
+
+    .table>tbody>tr>td, .table>thead>tr>th { padding: 3px; }
+
+    .gly-spin {
+      -webkit-animation: spin 2s infinite linear;
+      -moz-animation: spin 2s infinite linear;
+      -o-animation: spin 2s infinite linear;
+      animation: spin 2s infinite linear;
+    }
+
+    .glyphicon-refresh-animate {
+        -animation: spin .7s infinite linear;
+        -webkit-animation: spin2 .7s infinite linear;
+    }
+
+    @-webkit-keyframes spin2 {
+        from { -webkit-transform: rotate(0deg);}
+        to { -webkit-transform: rotate(360deg);}
+    }
+
+    @keyframes spin {
+        from { transform: scale(1) rotate(0deg);}
+        to { transform: scale(1) rotate(360deg);}
+    }
+
+    .form-control-sm {
+      padding: 6px 9px;
+      line-height: 1.5;
+      border-radius: 3px;
+      height: 35px;
+    }
+
+    .form-control-xs {
+      padding: 6px 9px;
+      line-height: 1.5;
+      border-radius: 3px;
+      height: 25px;
+    }
+
+    body, html{height:100%;}
+
+    #main{
+      /* max-width:1280px; */
+      min-height:100%;
+      margin:0 auto;
+      position:relative;
+      padding-bottom: 30px;
+    }
+
+    .footer {
+      height: 30px;
+      line-height: 30px;
+      background-color: #f5f5f5;
+      margin-top: 20px;
+      font-size: 12px;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      position: absolute;
+    }
+
+    .badge-secondary {
+      color: #fff;
+      background-color: #95a5a6;
+    }
+
+    .navbar-default .navbar-brand:hover, .navbar-default .navbar-brand:focus {
+      color: darkorange;
+    }
+    .navbar-default .navbar-nav>li>a:hover, .navbar-default .navbar-nav>li>a:focus {
+      color: darkorange;
+    }
+
+    .label-critical { background-color: #cc0500; }
+    .label-high { background-color: #df3d03; }
+    .label-medium { background-color: #f9a009; }
+    .label-low { background-color: #ffcb0d; }
+    .label-info { background-color: #3498db; }
+
+    .progress-bar-critical { background-color: #cc0500; }
+    .progress-bar-high { background-color: #df3d03; }
+    .progress-bar-medium { background-color: #f9a009; }
+    .progress-bar-low { background-color: #ffcb0d; }
+    .progress-bar-info { background-color: #3498db; }
+
+    .form-control-xs-feedback {
+      position: absolute;
+      top: -3px;
+      right: 0;
+      display: block;
+      width: 25px;
+      height: 45px;
+      line-height: 33px;
+      text-align: center;
+      pointer-events: none;
+    }
+
+    .form-control-sm-feedback {
+      position: absolute;
+      top: 1px;
+      right: 3px;
+      display: block;
+      width: 25px;
+      height: 45px;
+      line-height: 33px;
+      text-align: center;
+      /* pointer-events: none; */
+    }
+
+    span.tag.label-info {
+      background-color: #3498db;
+    }
+
+    .pagination>li>a, .pagination>li>span {
+      padding: 2px 7px;
+      font-size: 12px;
+    }
+
+  </style>
+</head>
+
+<body>
+  <nav class="navbar navbar-default navbar-fixed-top">
+    <div class="container-fluid">
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-all">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/dashboard">PatrOwl Manager</a>
+      </div>
+      <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-all">
+        <ul class="nav navbar-nav">
+          {% if user.is_authenticated %}
+          <!-- Assets Management -->
+          <li class="dropdown">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="true">
+              <span class="glyphicon glyphicon-cloud"></span> Assets<span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu" role="menu">
+              <li><a href="{% url 'list_assets_view' %}">Assets</a></li>
+              {% if PRO_EDITION %}
+                {% if request.user.is_superuser or request.user|has_role:"MANAGER" or request.user|has_role:"ANALYST" %}
+                <li><a href="{% url 'add_asset_view' %}">+ Add new asset</a></li>
+                <li><a href="{% url 'bulkadd_asset_view' %}">+ Add new assets in bulk (CSV file)</a></li>
+                {% endif %}
+              {% else %}
+              <li><a href="{% url 'add_asset_view' %}">+ Add new asset</a></li>
+              <li><a href="{% url 'bulkadd_asset_view' %}">+ Add new assets in bulk (CSV file)</a></li>
+              {% endif %}
+
+              <li role="separator" class="divider"></li>
+              <li><a href="{% url 'list_assets_view' %}?target=asset_group">Asset groups</a></li>
+
+              {% if PRO_EDITION %}
+                {% if request.user.is_superuser or request.user|has_role:"MANAGER" or request.user|has_role:"ANALYST" %}
+                  <li><a href="{% url 'add_asset_group_view' %}">+ Add new group of assets</a></li>
+                {% endif %}
+              {% else %}
+                <li><a href="{% url 'add_asset_group_view' %}">+ Add new group of assets</a></li>
+              {% endif %}
+
+              <li role="separator" class="divider"></li>
+              <li><a href="{% url 'list_assets_view' %}?target=dynamic_asset_group">Dynamic asset groups</a></li>
+
+              {% if PRO_EDITION %}
+                {% if request.user.is_superuser or request.user|has_role:"MANAGER" or request.user|has_role:"ANALYST" %}
+                  <li><a href="{% url 'add_dyn_asset_group_view' %}">+ Add new dynamic group of assets</a></li>
+                {% endif %}
+              {% else %}
+                <li><a href="{% url 'add_dyn_asset_group_view' %}">+ Add new dynamic group of assets</a></li>
+              {% endif %}
+
+              <li role="separator" class="divider"></li>
+              <li><a href="/assets/owners/list">Asset owners</a></li>
+
+              {% if PRO_EDITION %}
+                {% if request.user.is_superuser or request.user|has_role:"MANAGER" or request.user|has_role:"ANALYST" %}
+                  <li><a href="/assets/owners/add">+ Add new asset owner</a></li>
+                {% endif %}
+              {% else %}
+                <li><a href="/assets/owners/add">+ Add new asset owner</a></li>
+              {% endif %}
+              <!-- <li role="separator" class="divider"></li>
+              <li><a href="/admin/assets/assetcategory/">List categories (Admin only)</a></li>
+              <li><a href="/admin/assets/assetcategory/add/">+ Add new category (Admin only)</a></li> -->
+            </ul>
+          </li>
+
+          <!-- Findings Management -->
+          <li class="dropdown">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="true">
+              <span class="glyphicon glyphicon-map-marker"></span> Findings<span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu" role="menu">
+              <li><a href="/findings/list">All findings</a></li>
+              <li><a href="/findings/list?_status=new">New findings</a></li>
+              <li><a href="/findings/list?_status=ack">Ack. findings</a></li>
+              {% if PRO_EDITION %}
+                {% if request.user.is_superuser or request.user|has_role:"MANAGER" or request.user|has_role:"ANALYST" %}
+                <li role="separator" class="divider"></li>
+                <li><a href="/findings/import">Manual import</a></li>
+                <li><a href="/findings/add">+ Add finding</a></li>
+                {% endif %}
+              {% else %}
+              <li role="separator" class="divider"></li>
+              <li><a href="/findings/import">Manual import</a></li>
+              <li><a href="/findings/add">+ Add finding</a></li>
+              {% endif %}
+
+            </ul>
+          </li>
+
+          <!-- Scans Management -->
+          <li class="dropdown">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="true">
+              <span class="glyphicon glyphicon-search"></span> Scans<span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu" role="menu">
+              <li><a href="/scans/list">Scans performed</a></li>
+              <li role="separator" class="divider"></li>
+              <li><a href="/scans/defs/list">Scans definitions</a></li>
+              {% if PRO_EDITION %}
+                {% if request.user.is_superuser or request.user|has_role:"MANAGER" or request.user|has_role:"ANALYST" %}
+                <li><a href="/scans/defs/add">+ Add new scan</a></li>
+                {% endif %}
+              {% else %}
+              <li><a href="/scans/defs/add">+ Add new scan</a></li>
+              {% endif %}
+            </ul>
+          </li>
+
+          <!-- Engines Management -->
+          <li class="dropdown">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="true">
+              <span class="glyphicon glyphicon-screenshot"></span> Engines<span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu">
+              <li class="dropdown-submenu">
+                <a href="/engines/list">Scan Engines</a>
+                {% if PRO_EDITION %}
+                  {% if request.user.is_superuser or request.user|has_role:"MANAGER" %}
+                  <li><a href="/engines/add">+ Add scan engine instance</a></li>
+                  {% endif %}
+
+                {% else %}
+                <li><a href="/engines/add">+ Add scan engine instance</a></li>
+                {% endif %}
+
+              </li>
+              <li role="separator" class="divider"></li>
+              <li class="dropdown-submenu">
+                <a href="/engines/policies/list">Scan Engines Policies</a>
+                {% if PRO_EDITION %}
+                  {% if request.user.is_superuser or request.user|has_role:"MANAGER" %}
+                  <li><a href="/engines/policies/add">+ Add policy</a></li>
+                  <li><a href="/engines/policies/import">* Import policies</a></li>
+                  {% endif %}
+
+                {% else %}
+                <li><a href="/engines/policies/add">+ Add policy</a></li>
+                <li><a href="/engines/policies/import">* Import policies</a></li>
+                {% endif %}
+
+              </li>
+
+              {% if PRO_EDITION %}
+                {% if request.user.is_superuser or request.user|has_role:"MANAGER" %}
+                <li role="separator" class="divider"></li>
+                <li class="dropdown-submenu">
+                  <a href="/engines/types/list">Scan Engine Types</a>
+                  <li><a href="/engines/types/add">+ Add engine type</a></li>
+                </li>
+                {% endif %}
+
+              {% else %}
+              <li role="separator" class="divider"></li>
+              <li class="dropdown-submenu">
+              <a href="/engines/types/list">Scan Engine Types</a>
+              <li><a href="/engines/types/add">+ Add engine type</a></li>
+              </li>
+              {% endif %}
+
+            </ul>
+          </li>
+
+          <!-- Alerts -->
+          <li class="dropdown">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="true">
+              <span class="glyphicon glyphicon-bell"></span> Alerts<span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu" role="menu">
+              <li><a href="/events/alerts/list">List alerts</a></li>
+            </ul>
+          </li>
+
+          <!-- Settings -->
+          <li class="dropdown">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="true">
+              <span class="glyphicon glyphicon-flash"></span> Rules<span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu" role="menu">
+              <li><a href="/rules/list">List rules</a></li>
+            </ul>
+          </li>
+        </ul>
+
+        <form class="navbar-form navbar-left" role="search" method="get" accept-charset="utf-8" action="/search" style="padding-top: 4px;">
+          <div class="input-group">
+            <input type="text" class="form-control input-sm" placeholder="Search" name="srch-term" id="srch-term">
+            <div class="input-group-btn">
+              <button class="btn btn-default btn-search btn-sm" type="submit"><i class="glyphicon glyphicon-search"></i></button>
+            </div>
+          </div>
+        </form>
+      <!-- </div> -->
+
+      <!-- User Account Management -->
+      <!-- <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1"> -->
+      <!-- <div > -->
+        <ul class="nav navbar-nav navbar-right">
+          <li class="dropdown">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+              <span class="glyphicon glyphicon-user"></span> {{ user.username }}
+              <span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu" role="menu">
+              <li><a href="/dashboard"><span class="glyphicon glyphicon-home"></span> Homepage</a></li>
+              {% if PRO_EDITION %}
+                {% if request.user.is_superuser or request.user|has_role:"MANAGER" %}
+                <li><a href="/settings/"><span class="glyphicon glyphicon-wrench"></span> Settings</a></li>
+                {% else %}
+                <!-- <li><a href="#"><span class="glyphicon glyphicon-wrench"></span> Settings (Admin or Manager only)</a></li> -->
+                <!-- <li><a href="#"><span class="glyphicon glyphicon-wrench"></span> Settings (SuperAdmin only)</a></li> -->
+                {% endif %}
+              {% else %}
+              <li><a href="/settings/"><span class="glyphicon glyphicon-wrench"></span> Settings</a></li>
+              {% endif %}
+              <li><a href="/settings/support"><span class="glyphicon glyphicon-education text-warning"></span> Support</a></li>
+
+              <li class="divider"></li>
+              {% if PRO_EDITION %}
+                <!-- <li><a href="/users/pro/list"><span class="glyphicon glyphicon-th-list"></span> Users</a></li> -->
+                {% if request.user.is_superuser or request.user|is_team_admin == True %}
+                <li><a href="/users/list"><span class="glyphicon glyphicon-th-list"></span> Users</a></li>
+                {% else %}
+                <li><a href="#"><span class="glyphicon glyphicon-th-list"></span> Users (Admin only)</a></li>
+                {% endif %}
+              {% else %}
+              <li><a href="https://patrowl.io/get-started"><span class="glyphicon glyphicon-th-list"></span> Users (PRO EDITION)</a></li>
+              {% endif %}
+              {% if PRO_EDITION %}
+              <li><a href="/teams/list"><span class="glyphicon glyphicon-th-large"></span>Teams</a></li>
+              {% else %}
+              <li><a href="https://patrowl.io/get-started"><span class="glyphicon glyphicon-th-large"></span> Teams (PRO EDITION)</a></li>
+              {% endif %}
+
+              <li class="divider"></li>
+              <li><a href="/users/details"><span class="glyphicon glyphicon-user"></span> My account</a></li>
+              {% if PRO_EDITION %}
+                {% if request.user.profile.is_delegated == False %}
+                <li><a href="/users/editpw"><span class="glyphicon glyphicon-lock"></span> Change my password</a></li>
+                {% endif %}
+              {% else %}
+              <li><a href="/users/editpw"><span class="glyphicon glyphicon-lock"></span> Change my password</a></li>
+              {% endif %}
+              {% if PRO_EDITION %}
+                {% if request.user.is_superuser %}
+                <li><a href="/logout"><span class="glyphicon glyphicon-log-out"></span> Logout</a></li>
+                {% elif request.user.profile.is_delegated == True %}
+                <!-- <li><a href="/oauth2/logout"><span class="glyphicon glyphicon-log-out"></span> Logout</a></li> -->
+                <li><a href="#" class="btn-logout-sso"><span class="glyphicon glyphicon-log-out"></span> Logout</a></li>
+                {% else %}
+                <li><a href="/logout"><span class="glyphicon glyphicon-log-out"></span> Logout</a></li>
+                {% endif %}
+              {% else %}
+              <li><a href="/logout"><span class="glyphicon glyphicon-log-out"></span> Logout</a></li>
+              {% endif %}
+            </ul>
+          </li>
+        </ul>
+      </div>
+      {% else %}
+        <ul class="nav navbar-nav navbar-right">
+          <li><a href="/login"><span class="glyphicon glyphicon-log-in"></span> {% trans "Login" %}</a></li>
+        </ul>
+      </div>
+      {% endif %}
+    </div>
+  </nav>
+
+  <div id="main">
+    {% block content %} {% endblock %}
+  </div>
+
+  <div id="footer-div" style="position: sticky;">
+    <footer class="footer">
+      <div class="container-fluid">
+        <div class="col-sm-6">
+          <span class="text-muted">PatrOwl Manager 2018-2022 - version: {{ PATROWL_VERSION }}</span>
+          <a href="https://github.com/Patrowl/PatrowlManager"><i class="text-muted fab fa-github fa-lg"></i></a>
+          <a href="https://twitter.com/patrowl_io"><i class="text-muted fab fa-twitter fa-lg"></i></a>
+          <a href="https://www.linkedin.com/company/patrowl/"><i class="text-muted fab fa-linkedin fa-lg"></i></a>
+          {% if PRO_EDITION == False %}
+            <a href="https://patrowl.io/"><span class="label label-warning">Pro Edition available</span></a>
+          {% endif %}
+        </div>
+        {% if user.is_authenticated %}
+        <div class="col-sm-6">
+          <span class="text-muted pull-right running-scans"></span>
+          <span class="text-muted pull-right enqueued-scans"></span>
+          <span class="text-muted pull-right engine-status"></span>
+          <text class="text-muted pull-right" id='engines_status_label'>Engines status: &nbsp;</text>
+        </div>
+        {% endif %}
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    // jQuery functions
+    $(function(){
+      // Compare findings
+      $("a.btn-logout-sso").on('click', function (e) {
+        $.ajax({
+          url: "/oauth2/logout",
+          method: "GET",
+          success: function(data){
+            window.location.href = "/login";
+          },
+          error: function(data){
+            window.location.href = "/login";
+          }
+        });
+
+
+      });
+    });
+
+  </script>
+
+  {% block javascript %} {% endblock %}
+</body>
+</html>
