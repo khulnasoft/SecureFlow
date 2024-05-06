@@ -19,7 +19,7 @@ app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
 #     'interval_max': 0.2,
 # }
 
-#app.conf.timezone = os.environ.get('PATROWL_TZ', 'Europe/Paris')
+#app.conf.timezone = os.environ.get('SECUREFLOW_TZ', 'Europe/Paris')
 
 app.conf.task_queues = (
     # Default Queue / administrative purposes

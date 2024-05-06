@@ -1,5 +1,5 @@
 #!/bin/bash
-# Installation script for PatrowlManager and few engines
+# Installation script for SecureFlow and few engines
 # Copyright (C) 2020 Nicolas Mattiocco - @MaKyOtOx
 # Licensed under the AGPLv3 License
 
@@ -10,12 +10,12 @@ DB_PORT = ${POSTGRES_PORT:-5432}
 # RabbitMQ
 RABBITMQ_HOST = ${RABBITMQ_HOST:-rabbitmq}
 RABBITMQ_PORT = ${RABBITMQ_PORT:-5672}
-# PatrowlEngines
+# SecureFlow
 PE_INSTALL_PATH = ${PE_INSTALL_PATH:-"$PWD/../"}
-# PatrowlManager
-SU_USERNAME = ${PATROWL_SU_USERNAME:-"admin"}
-SU_EMAIL = ${PATROWL_SU_EMAIL:-"admin@dev.patrowl.io"}
-SU_PASSWORD = ${PATROWL_SU_PASSWORD:-"Bonjour1!"}
+# SecureFlow
+SU_USERNAME = ${SECUREFLOW_SU_USERNAME:-"admin"}
+SU_EMAIL = ${SECUREFLOW_SU_EMAIL:-"admin@dev.patrowl.io"}
+SU_PASSWORD = ${SECUREFLOW_SU_PASSWORD:-"Bonjour1!"}
 
 echo "[+] Install OS dependencies"
 sudo apt install build-essential python3 python3-dev git curl rabbitmq-server postgresql postgresql-client nginx
@@ -24,8 +24,8 @@ sudo python3 get-pip.py
 rm get-pip.py
 sudo pip3 install virtualenv
 
-echo "[+] Install PatrowlEngines"
-git clone https://github.com/Patrowl/PatrowlEngines $PE_INSTALL_PATH
+echo "[+] Install SecureFlow"
+git clone https://github.com/khulnasoft/SecureFlow $PE_INSTALL_PATH
 
 echo "[+] Wait for DB availability"
 while !</dev/tcp/$POSTGRES_HOST/$POSTGRES_PORT; do sleep 1; done
@@ -35,7 +35,7 @@ while !</dev/tcp/$RABBITMQ_HOST/$RABBITMQ_PORT; do sleep 1; done
 
 source env3/bin/activate
 
-echo "[+] PatrowlManager version"
+echo "[+] SecureFlow version"
 cat VERSION
 
 # Collect static files

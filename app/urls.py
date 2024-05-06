@@ -28,7 +28,7 @@ handler404 = 'app.views.custom_page_not_found'
 handler500 = 'app.views.custom_error'
 
 
-api_schema_view = get_swagger_view(title='PatrowlManager REST-API')
+api_schema_view = get_swagger_view(title='SecureFlow REST-API')
 
 urlpatterns = [
     url(r'^apis-doc', api_schema_view),

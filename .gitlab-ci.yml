@@ -2,7 +2,7 @@
 variables:
   CI_DEBUG_TRACE: "false"
   REGISTRY_URL: "registry.local:5000/patrowl/docker-images"
-  STACK: "patrowl-manager"
+  STACK: "secureflow-manager"
   FOLDER_PATH: "."
 stages:
   - build

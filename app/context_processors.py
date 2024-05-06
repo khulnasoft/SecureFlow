@@ -3,8 +3,8 @@ from django.conf import settings
 
 def selected_settings(request):
     r = {
-        'PATROWL_VERSION': settings.PATROWL_VERSION,
-        'PATROWL_REFRESH_ENGINE': settings.PATROWL_REFRESH_ENGINE,
+        'SECUREFLOW_VERSION': settings.SECUREFLOW_VERSION,
+        'SECUREFLOW_REFRESH_ENGINE': settings.SECUREFLOW_REFRESH_ENGINE,
         'PRO_EDITION': settings.PRO_EDITION,
         'LOGOUT_URL': settings.LOGOUT_URL
     }

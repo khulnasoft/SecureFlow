@@ -32,12 +32,12 @@ jobs:
         id: import-env
         shell: bash
         run: |
-          gpg --quiet --batch --yes --decrypt --passphrase="$PATROWL_SECRET_GITHUB_KEY" --output ./.github/workflows/secret.env ./.github/workflows/secret.env.pgp
+          gpg --quiet --batch --yes --decrypt --passphrase="$SECUREFLOW_SECRET_GITHUB_KEY" --output ./.github/workflows/secret.env ./.github/workflows/secret.env.pgp
           while read line; do
             echo "$line" >> $GITHUB_ENV
           done < ./.github/workflows/secret.env
         env:
-          PATROWL_SECRET_GITHUB_KEY: ${{ secrets.PATROWL_SECRET_GITHUB_KEY }}
+          SECUREFLOW_SECRET_GITHUB_KEY: ${{ secrets.SECUREFLOW_SECRET_GITHUB_KEY }}
 
       - name: Get branch name (merge)
         if: github.event_name != 'pull_request'
