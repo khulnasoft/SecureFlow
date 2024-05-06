@@ -11,7 +11,7 @@
 
 # **PatrOwl**
 [PatrOwl](https://www.patrowl.io/) is a scalable, free and open-source solution for orchestrating Security Operations.  
-**SecureFlow** is the Front-end application for managing the assets, reviewing risks on real-time, orchestrating the operations (scans, searches, API calls, ...), aggregating the results, relaying alerts on third parties (ex: Incident Response platform like [TheHive](https://github.com/TheHive-Project/TheHive/), Splunk, ...) and providing the reports and dashboards. Operations are performed by the [PatrowlEngines](https://github.com/khulnasoft/SecureFlow/) instances. Don't forget to install and deploy them ;)
+**SecureFlow** is the Front-end application for managing the assets, reviewing risks on real-time, orchestrating the operations (scans, searches, API calls, ...), aggregating the results, relaying alerts on third parties (ex: Incident Response platform like [TheHive](https://github.com/TheHive-Project/TheHive/), Splunk, ...) and providing the reports and dashboards. Operations are performed by the [SecureFlow](https://github.com/khulnasoft/SecureFlow/) instances. Don't forget to install and deploy them ;)
 
 # Project pitch desk
 [![PatrOwl Pitch Desk](https://github.com/Patrowl/PatrowlDocs/blob/master/images/misc/pitch-desk-frontpage.png)](https://docs.google.com/presentation/d/1bYUYzsGZBQJrq193rz98wIgjZam7y2vaBQ7C2uS0HaM/edit#slide=id.p)
@@ -20,9 +20,9 @@
 To try PatrOwl, install it by reading the [Installation Guide](https://github.com/Patrowl/PatrowlDocs/blob/master/installation/installation-guide.md) and the [User Guide](https://github.com/Patrowl/PatrowlDocs/blob/master/installation/user-guide.md).
 
 # Architecture
-Fully-Developed in Python, PatrOwl is composed of a Front-end application **SecureFlow** (Django) communicating with one or multiple **PatrowlEngines** micro-applications (Flask) which perform the scans, analyze the results and format them in a normalized way. It remains incredibly easy to customize all components. Asynchronous tasks and engine scalability are supported by RabbitMQ and Celery.
+Fully-Developed in Python, PatrOwl is composed of a Front-end application **SecureFlow** (Django) communicating with one or multiple **SecureFlow** micro-applications (Flask) which perform the scans, analyze the results and format them in a normalized way. It remains incredibly easy to customize all components. Asynchronous tasks and engine scalability are supported by RabbitMQ and Celery.
 ![Architecture](https://github.com/Patrowl/PatrowlDocs/blob/master/images/userguide/technical-overview.png)  
-The SecureFlow application is reachable using the embedded WEB interface or using the JSON-API. PatrowlEngines are only available through generic JSON-API calls (see Documentation).
+The SecureFlow application is reachable using the embedded WEB interface or using the JSON-API. SecureFlow are only available through generic JSON-API calls (see Documentation).
 
 # License
 PatrOwl is an open source and free software released under the [AGPL](https://github.com/Patrowl/SecureFlow/blob/master/LICENSE) (Affero General Public License). We are committed to ensure that PatrOwl will remain a free and open source project on the long-run.

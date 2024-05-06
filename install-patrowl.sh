@@ -10,7 +10,7 @@ DB_PORT = ${POSTGRES_PORT:-5432}
 # RabbitMQ
 RABBITMQ_HOST = ${RABBITMQ_HOST:-rabbitmq}
 RABBITMQ_PORT = ${RABBITMQ_PORT:-5672}
-# PatrowlEngines
+# SecureFlow
 PE_INSTALL_PATH = ${PE_INSTALL_PATH:-"$PWD/../"}
 # SecureFlow
 SU_USERNAME = ${SECUREFLOW_SU_USERNAME:-"admin"}
@@ -24,7 +24,7 @@ sudo python3 get-pip.py
 rm get-pip.py
 sudo pip3 install virtualenv
 
-echo "[+] Install PatrowlEngines"
+echo "[+] Install SecureFlow"
 git clone https://github.com/khulnasoft/SecureFlow $PE_INSTALL_PATH
 
 echo "[+] Wait for DB availability"
