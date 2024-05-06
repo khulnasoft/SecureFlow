@@ -13,9 +13,9 @@ RABBITMQ_PORT = ${RABBITMQ_PORT:-5672}
 # PatrowlEngines
 PE_INSTALL_PATH = ${PE_INSTALL_PATH:-"$PWD/../"}
 # PatrowlManager
-SU_USERNAME = ${PATROWL_SU_USERNAME:-"admin"}
-SU_EMAIL = ${PATROWL_SU_EMAIL:-"admin@dev.patrowl.io"}
-SU_PASSWORD = ${PATROWL_SU_PASSWORD:-"Bonjour1!"}
+SU_USERNAME = ${SECUREFLOW_SU_USERNAME:-"admin"}
+SU_EMAIL = ${SECUREFLOW_SU_EMAIL:-"admin@dev.patrowl.io"}
+SU_PASSWORD = ${SECUREFLOW_SU_PASSWORD:-"Bonjour1!"}
 
 echo "[+] Install OS dependencies"
 sudo apt install build-essential python3 python3-dev git curl rabbitmq-server postgresql postgresql-client nginx
@@ -25,7 +25,7 @@ rm get-pip.py
 sudo pip3 install virtualenv
 
 echo "[+] Install PatrowlEngines"
-git clone https://github.com/Patrowl/PatrowlEngines $PE_INSTALL_PATH
+git clone https://github.com/khulnasoft/SecureFlow $PE_INSTALL_PATH
 
 echo "[+] Wait for DB availability"
 while !</dev/tcp/$POSTGRES_HOST/$POSTGRES_PORT; do sleep 1; done

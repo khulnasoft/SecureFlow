@@ -425,7 +425,7 @@ def export_finding_api(request, finding_id):
             "type": "vulnerability",
             "name": finding.title,
             "description": finding.description,
-            "id": "patrowl-{}{}".format(prefix, finding.id)
+            "id": "secureflow-{}{}".format(prefix, finding.id)
         }
         response = HttpResponse(
             json.dumps(res, default=json_serial),
