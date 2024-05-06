@@ -1,1 +1,1 @@
-PatrowlManager - Send Email report
+SecureFlow - Send Email report

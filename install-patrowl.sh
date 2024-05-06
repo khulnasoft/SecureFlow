@@ -1,5 +1,5 @@
 #!/bin/bash
-# Installation script for PatrowlManager and few engines
+# Installation script for SecureFlow and few engines
 # Copyright (C) 2020 Nicolas Mattiocco - @MaKyOtOx
 # Licensed under the AGPLv3 License
 
@@ -12,7 +12,7 @@ RABBITMQ_HOST = ${RABBITMQ_HOST:-rabbitmq}
 RABBITMQ_PORT = ${RABBITMQ_PORT:-5672}
 # PatrowlEngines
 PE_INSTALL_PATH = ${PE_INSTALL_PATH:-"$PWD/../"}
-# PatrowlManager
+# SecureFlow
 SU_USERNAME = ${SECUREFLOW_SU_USERNAME:-"admin"}
 SU_EMAIL = ${SECUREFLOW_SU_EMAIL:-"admin@dev.patrowl.io"}
 SU_PASSWORD = ${SECUREFLOW_SU_PASSWORD:-"Bonjour1!"}
@@ -35,7 +35,7 @@ while !</dev/tcp/$RABBITMQ_HOST/$RABBITMQ_PORT; do sleep 1; done
 
 source env3/bin/activate
 
-echo "[+] PatrowlManager version"
+echo "[+] SecureFlow version"
 cat VERSION
 
 # Collect static files

@@ -13,7 +13,7 @@ while !</dev/tcp/$RABBITMQ_HOST/$RABBITMQ_PORT; do sleep 1; done
 
 source env3/bin/activate
 
-echo "[+] PatrowlManager version"
+echo "[+] SecureFlow version"
 cat VERSION
 
 # Collect static files

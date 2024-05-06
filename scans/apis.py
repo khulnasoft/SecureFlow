@@ -408,7 +408,7 @@ def get_scan_report_html_api(request, scan_id):
         msg_html = render_to_string("email_send_report.html", report_params)
         html_report = render_to_string('report-scan.html', report_params)
 
-        subject = '[PatrowlManager] Scan Report available - {}'.format(scan)
+        subject = '[SecureFlow] Scan Report available - {}'.format(scan)
 
         try:
             recipients = Setting.objects.get(key="alerts.endpoint.email").value
